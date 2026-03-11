@@ -15,6 +15,41 @@ interface QuizProps {
 }
 
 export default function Quiz({ questions, onExit }: QuizProps) {
+
+  // 1. Função para reembaralhar tanto a ordem das perguntas quanto das alternativas
+  const shuffleQuestionsAndOptions = (qs: Question[]) => {
+    return qs.map(q => {
+      const optionsArray = Object.keys(q.options).map(k => ({ originalKey: k, value: q.options[k] }));
+      const shuffledArray = optionsArray.sort(() => Math.random() - 0.5);
+      
+      const newOptions: Record<string, string> = {};
+      let newCorrect = '';
+      const alphabet = 'abcdefghijklmnopqrstuvwxyz';
+      
+      shuffledArray.forEach((item, index) => {
+        const newKey = alphabet[index];
+        newOptions[newKey] = item.value;
+        if (item.originalKey === q.correct) {
+          newCorrect = newKey;
+        }
+      });
+
+      return {
+        ...q,
+        correct: newCorrect,
+        options: newOptions
+      };
+    }).sort(() => Math.random() - 0.5);
+  };
+
+  // 2. Estado local para as perguntas do quiz
+  const [localQuestions, setLocalQuestions] = useState<Question[]>(questions);
+
+  // 3. Sincroniza o estado caso as perguntas originais mudem
+  useEffect(() => {
+    setLocalQuestions(questions);
+  }, [questions]);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [score, setScore] = useState(0);
@@ -23,6 +58,7 @@ export default function Quiz({ questions, onExit }: QuizProps) {
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
 
   const handlePlayAgain = useCallback(() => {
+    setLocalQuestions(prev => shuffleQuestionsAndOptions(prev));
     setCurrentIndex(0);
     setSelectedOption(null);
     setScore(0);
@@ -31,7 +67,7 @@ export default function Quiz({ questions, onExit }: QuizProps) {
     setUserAnswers({});
   }, []);
 
-  const currentQuestion = questions[currentIndex];
+  const currentQuestion = localQuestions[currentIndex];
   const optionKeys = useMemo(() => currentQuestion ? Object.keys(currentQuestion.options).sort() : [], [currentQuestion]);
 
   const handleOptionSelect = useCallback((optionKey: string) => {
@@ -47,14 +83,14 @@ export default function Quiz({ questions, onExit }: QuizProps) {
   }, [showFeedback, currentQuestion, currentIndex]);
 
   const handleNextQuestion = useCallback(() => {
-    if (currentIndex < questions.length - 1) {
+    if (currentIndex < localQuestions.length - 1) {
       setCurrentIndex((prev) => prev + 1);
       setSelectedOption(null);
       setShowFeedback(false);
     } else {
       setQuizFinished(true);
     }
-  }, [currentIndex, questions.length]);
+  }, [currentIndex, localQuestions.length]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -78,10 +114,10 @@ export default function Quiz({ questions, onExit }: QuizProps) {
   }, [showFeedback, quizFinished, optionKeys, handleOptionSelect, handleNextQuestion]);
 
   if (quizFinished) {
-    const percentage = Math.round((score / questions.length) * 100);
+    const percentage = Math.round((score / localQuestions.length) * 100);
 
     const topicStats: Record<string, { total: number; correct: number }> = {};
-    questions.forEach((q, idx) => {
+    localQuestions.forEach((q, idx) => {
       const topic = q.topic;
       if (!topicStats[topic]) {
         topicStats[topic] = { total: 0, correct: 0 };

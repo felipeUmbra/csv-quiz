@@ -10,9 +10,9 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
-      return document.documentElement.classList.contains('dark');
+      return document.documentElement.classList.contains('dark') || true; // Default to dark mode for better aesthetics, can be changed by user
     }
-    return false;
+    return true; // Default to dark mode on server-side rendering
   });
 
   useEffect(() => {
@@ -83,8 +83,12 @@ export default function App() {
             throw new Error('Nenhuma pergunta encontrada no arquivo.');
           }
 
+          // Embaralha a ordem de todas as perguntas
+          parsedQuestions = parsedQuestions.sort(() => 0.5 - Math.random());
+
+          // Se houver um limite (como no "Testar Exemplo"), recorta o array
           if (limit && limit > 0) {
-            parsedQuestions = parsedQuestions.sort(() => 0.5 - Math.random()).slice(0, limit);
+            parsedQuestions = parsedQuestions.slice(0, limit);
           }
 
           setQuestions(parsedQuestions);
