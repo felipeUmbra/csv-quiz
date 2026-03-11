@@ -7,7 +7,7 @@ export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
     // Add the base path for GitHub Pages (must match your repository name)
-    base: '/csv-quiz/', 
+    base: mode === 'production' ? '/csv-quiz/' : '/', 
     
     plugins: [react(), tailwindcss()],
     define: {
