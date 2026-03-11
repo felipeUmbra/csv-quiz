@@ -1,0 +1,5 @@
+{
+  "name": "CSV Quiz",
+  "description": "Uma aplicação web que lê um arquivo CSV e gera um questionário interativo com base nas perguntas e alternativas fornecidas.",
+  "requestFramePermissions": []
+}
