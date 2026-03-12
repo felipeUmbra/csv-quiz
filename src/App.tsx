@@ -31,28 +31,42 @@ export default function App() {
       skipEmptyLines: true,
       complete: (results) => {
         try {
-          let parsedQuestions: Question[] = results.data.map((row: any) => {
-            // Validate required fields based on the provided CSV structure
-            if (!row['pergunta'] || !row['alternativa correta']) {
-              throw new Error('Formato de CSV inválido. Verifique as colunas "pergunta" e "alternativa correta".');
+          // 1. Verificação se o arquivo tem dados/perguntas
+          if (!results.data || results.data.length === 0) {
+            throw new Error('Nenhuma pergunta encontrada no arquivo CSV.');
+          }
+
+          let parsedQuestions: Question[] = results.data.map((row: any, index: number) => {
+            const linhaCSV = index + 2; // +1 pelo cabeçalho, +1 porque o index começa em 0
+
+            // 2. Verificação se existe pergunta na linha
+            if (!row['pergunta'] || row['pergunta'].trim() === '') {
+              throw new Error(`Erro na linha ${linhaCSV}: A coluna "pergunta" está vazia ou não existe.`);
             }
             
+            // 3. Verificação se existe resposta correta indicada
+            if (!row['alternativa correta'] || row['alternativa correta'].trim() === '') {
+              throw new Error(`Erro na linha ${linhaCSV}: A "alternativa correta" não foi especificada para a pergunta "${row['pergunta']}".`);
+            }
+
             const options: Record<string, string> = {};
             Object.keys(row).forEach(key => {
               const match = key.toLowerCase().match(/^alternativa ([a-h])$/);
-              if (match && row[key]?.trim()) {
+              if (match && row[key] && row[key].trim() !== '') {
                 options[match[1]] = row[key].trim();
               }
             });
 
-            const optionKeys = Object.keys(options);
-            if (optionKeys.length < 2 || optionKeys.length > 8) {
-              throw new Error(`A pergunta "${row['pergunta']}" deve ter entre 2 e 8 alternativas.`);
+            // 4. Verificação se há pelo menos as alternativas 'a' e 'b'
+            if (!options['a'] || !options['b']) {
+              throw new Error(`Erro na linha ${linhaCSV}: A pergunta "${row['pergunta']}" deve ter pelo menos as "alternativa a" e "alternativa b" preenchidas.`);
             }
 
             const correct = row['alternativa correta'].toLowerCase().trim();
+            
+            // Verificação extra para garantir que a alternativa correta apontada realmente existe entre as opções
             if (!options[correct]) {
-              throw new Error(`A alternativa correta "${correct}" não corresponde a nenhuma das alternativas fornecidas para a pergunta "${row['pergunta']}".`);
+              throw new Error(`Erro na linha ${linhaCSV}: A alternativa correta apontada ("${correct}") está vazia ou não existe nas opções desta pergunta.`);
             }
 
             // Embaralhar as alternativas
@@ -63,8 +77,8 @@ export default function App() {
             let newCorrect = '';
             const alphabet = 'abcdefghijklmnopqrstuvwxyz';
             
-            shuffledArray.forEach((item, index) => {
-              const newKey = alphabet[index];
+            shuffledArray.forEach((item, idx) => {
+              const newKey = alphabet[idx];
               newOptions[newKey] = item.value;
               if (item.originalKey === correct) {
                 newCorrect = newKey;
@@ -78,15 +92,10 @@ export default function App() {
               options: newOptions
             };
           });
-          
-          if (parsedQuestions.length === 0) {
-            throw new Error('Nenhuma pergunta encontrada no arquivo.');
-          }
 
           // Embaralha a ordem de todas as perguntas
           parsedQuestions = parsedQuestions.sort(() => 0.5 - Math.random());
 
-          // Se houver um limite (como no "Testar Exemplo"), recorta o array
           if (limit && limit > 0) {
             parsedQuestions = parsedQuestions.slice(0, limit);
           }
@@ -106,12 +115,19 @@ export default function App() {
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    
+    if (!file) {
+      return;
+    }
 
     if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
       setError('Por favor, envie um arquivo CSV válido.');
+      event.target.value = ''; // Limpa o input em caso de erro de formato
       return;
     }
+
+    // Limpa os erros anteriores ao tentar um novo upload
+    setError(null); 
 
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -121,7 +137,12 @@ export default function App() {
     reader.onerror = () => {
       setError('Erro ao ler o arquivo.');
     };
+    
     reader.readAsText(file);
+
+    // ESSA É A LINHA MÁGICA: 
+    // Reseta o valor do input para permitir o reenvio do mesmo arquivo
+    event.target.value = ''; 
   };
 
   const loadDefaultQuiz = () => {
