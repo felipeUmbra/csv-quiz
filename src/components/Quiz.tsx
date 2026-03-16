@@ -48,6 +48,7 @@ export default function Quiz({ questions, onExit }: QuizProps) {
   // 3. Sincroniza o estado caso as perguntas originais mudem
   useEffect(() => {
     setLocalQuestions(questions);
+    setTimeElapsed(0); // Reset timer when a new quiz is loaded
   }, [questions]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -57,6 +58,26 @@ export default function Quiz({ questions, onExit }: QuizProps) {
   const [quizFinished, setQuizFinished] = useState(false);
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
 
+  const [timeElapsed, setTimeElapsed] = useState(0);
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (!quizFinished) {
+      timer = setInterval(() => {
+        setTimeElapsed((prev) => prev + 1);
+      }, 1000);
+    }
+    // Clean up the timer when the component unmounts or quiz finishes
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [quizFinished]);
+
   const handlePlayAgain = useCallback(() => {
     setLocalQuestions(prev => shuffleQuestionsAndOptions(prev));
     setCurrentIndex(0);
@@ -65,6 +86,7 @@ export default function Quiz({ questions, onExit }: QuizProps) {
     setShowFeedback(false);
     setQuizFinished(false);
     setUserAnswers({});
+    setTimeElapsed(0); // Reset timer on replay
   }, []);
 
   const currentQuestion = localQuestions[currentIndex];
@@ -152,7 +174,7 @@ export default function Quiz({ questions, onExit }: QuizProps) {
             </div>
           </div>
           <p className="text-lg text-slate-600 dark:text-slate-400 mb-8">
-            Você acertou <span className="font-bold text-slate-800 dark:text-white">{score}</span> de <span className="font-bold text-slate-800 dark:text-white">{questions.length}</span> perguntas.
+            Você acertou <span className="font-bold text-slate-800 dark:text-white">{score}</span> de <span className="font-bold text-slate-800 dark:text-white">{questions.length}</span> perguntas em <span className="font-bold text-slate-800 dark:text-white">{formatTime(timeElapsed)}</span>.
           </p>
 
           {hasMultipleTopics && (
@@ -284,7 +306,14 @@ export default function Quiz({ questions, onExit }: QuizProps) {
       <div className="mb-8">
         <div className="flex justify-between text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">
           <span>Questão {currentIndex + 1} de {questions.length}</span>
-          <span>{Math.round(((currentIndex) / questions.length) * 100)}% Concluído</span>
+          
+          {/* Update this div to include the timer next to the percentage */}
+          <div className="flex gap-4">
+            <span className="font-mono bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-700 dark:text-slate-300">
+              ⏱ {formatTime(timeElapsed)}
+            </span>
+            <span>{Math.round(((currentIndex) / questions.length) * 100)}% Concluído</span>
+          </div>
         </div>
         <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2.5">
           <div 
