@@ -49,6 +49,12 @@ export default function Quiz({ questions, onExit, hideCorrectAnswer = false, onF
 
   useEffect(() => {
     setLocalQuestions(questions);
+    setCurrentIndex(0);
+    setSelectedOption(null);
+    setScore(0);
+    setShowFeedback(false);
+    setQuizFinished(false);
+    setUserAnswers({});
     setTimeElapsed(0); 
   }, [questions]);
 
@@ -79,15 +85,9 @@ export default function Quiz({ questions, onExit, hideCorrectAnswer = false, onF
   }, [quizFinished]);
 
   const handlePlayAgain = useCallback(() => {
-    setLocalQuestions(prev => shuffleQuestionsAndOptions(prev));
-    setCurrentIndex(0);
-    setSelectedOption(null);
-    setScore(0);
-    setShowFeedback(false);
-    setQuizFinished(false);
-    setUserAnswers({});
-    setTimeElapsed(0); 
-    if (onRestart) onRestart()
+    if (onRestart) {
+      onRestart();
+    }
   }, [onRestart]);
 
   const currentQuestion = localQuestions[currentIndex];

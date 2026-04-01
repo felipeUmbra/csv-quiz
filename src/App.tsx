@@ -393,6 +393,21 @@ export default function App() {
             onExit={restartQuiz} 
             hideCorrectAnswer={hideCorrectAnswer}
             onFinish={() => setIsQuizFinished(true)} 
+            onRestart={() => {
+              setIsQuizFinished(false);
+              // Verifica se a opção de "Definir número de questões" foi ativada na tela de resultados
+              if (enableCustomQuestionCount) {
+                setIsStarted(false);
+                setIsConfiguringQuestions(true);
+                const counts: Record<string, number> = {};
+                allParsedQuestions.forEach(q => counts[q.topic] = (counts[q.topic] || 0) + 1);
+                setTopicCounts(counts);
+                setTopicLimits(prev => Object.keys(prev).length > 0 ? prev : counts);
+              } else {
+                // Se não, envia todas as perguntas embaralhadas (o que zera o Quiz.tsx automaticamente)
+                setQuestions([...allParsedQuestions].sort(() => 0.5 - Math.random()));
+              }
+            }}
           />
         )}
       </main>
