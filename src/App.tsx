@@ -228,9 +228,9 @@ export default function App() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <FileText className="w-5 h-5 text-white" />
+              <img src="/favicon.svg" alt="Logo" className="w-5 h-5" />
             </div>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">Gerador de</h1>
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">Gerador de Teste</h1>
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
             <button
