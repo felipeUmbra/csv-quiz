@@ -12,11 +12,14 @@ export interface Question {
 interface QuizProps {
   questions: Question[];
   onExit: () => void;
+  hideCorrectAnswer?: boolean;
+  onFinish?: () => void;
+  onRestart?: () => void;
 }
 
-export default function Quiz({ questions, onExit }: QuizProps) {
+// CORREÇÃO: Adicionados onFinish e onRestart aqui na declaração do componente
+export default function Quiz({ questions, onExit, hideCorrectAnswer = false, onFinish, onRestart }: QuizProps) {
 
-  // 1. Função para reembaralhar tanto a ordem das perguntas quanto das alternativas
   const shuffleQuestionsAndOptions = (qs: Question[]) => {
     return qs.map(q => {
       const optionsArray = Object.keys(q.options).map(k => ({ originalKey: k, value: q.options[k] }));
@@ -42,13 +45,17 @@ export default function Quiz({ questions, onExit }: QuizProps) {
     }).sort(() => Math.random() - 0.5);
   };
 
-  // 2. Estado local para as perguntas do quiz
   const [localQuestions, setLocalQuestions] = useState<Question[]>(questions);
 
-  // 3. Sincroniza o estado caso as perguntas originais mudem
   useEffect(() => {
     setLocalQuestions(questions);
-    setTimeElapsed(0); // Reset timer when a new quiz is loaded
+    setCurrentIndex(0);
+    setSelectedOption(null);
+    setScore(0);
+    setShowFeedback(false);
+    setQuizFinished(false);
+    setUserAnswers({});
+    setTimeElapsed(0); 
   }, [questions]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -72,22 +79,16 @@ export default function Quiz({ questions, onExit }: QuizProps) {
         setTimeElapsed((prev) => prev + 1);
       }, 1000);
     }
-    // Clean up the timer when the component unmounts or quiz finishes
     return () => {
       if (timer) clearInterval(timer);
     };
   }, [quizFinished]);
 
   const handlePlayAgain = useCallback(() => {
-    setLocalQuestions(prev => shuffleQuestionsAndOptions(prev));
-    setCurrentIndex(0);
-    setSelectedOption(null);
-    setScore(0);
-    setShowFeedback(false);
-    setQuizFinished(false);
-    setUserAnswers({});
-    setTimeElapsed(0); // Reset timer on replay
-  }, []);
+    if (onRestart) {
+      onRestart();
+    }
+  }, [onRestart]);
 
   const currentQuestion = localQuestions[currentIndex];
   const optionKeys = useMemo(() => currentQuestion ? Object.keys(currentQuestion.options).sort() : [], [currentQuestion]);
@@ -111,8 +112,9 @@ export default function Quiz({ questions, onExit }: QuizProps) {
       setShowFeedback(false);
     } else {
       setQuizFinished(true);
+      if (onFinish) onFinish();
     }
-  }, [currentIndex, localQuestions.length]);
+  }, [currentIndex, localQuestions.length, onFinish]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -154,9 +156,9 @@ export default function Quiz({ questions, onExit }: QuizProps) {
       const percentageA = topicStats[a].correct / topicStats[a].total;
       const percentageB = topicStats[b].correct / topicStats[b].total;
       if (percentageB !== percentageA) {
-        return percentageB - percentageA; // Sort descending by percentage
+        return percentageB - percentageA; 
       }
-      return a.localeCompare(b); // Fallback to alphabetical sort if percentages are equal
+      return a.localeCompare(b); 
     });
     const hasMultipleTopics = topics.length > 1;
 
@@ -264,9 +266,12 @@ export default function Quiz({ questions, onExit }: QuizProps) {
                     const isOptionCorrect = key === q.correct.toLowerCase();
                     const isOptionSelected = key === userAnswer;
                     
+                    // Lógica para omitir a resposta correta se o usuário errou
+                    const shouldShowCorrect = isOptionCorrect && (!hideCorrectAnswer || isOptionSelected);
+                    
                     let optionClass = "w-full text-left p-4 rounded-xl border-2 flex items-start gap-3 ";
                     
-                    if (isOptionCorrect) {
+                    if (shouldShowCorrect) {
                       optionClass += "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-900 dark:text-emerald-300";
                     } else if (isOptionSelected && !isOptionCorrect) {
                       optionClass += "border-red-500 bg-red-50 dark:bg-red-900/20 text-red-900 dark:text-red-300";
@@ -277,7 +282,7 @@ export default function Quiz({ questions, onExit }: QuizProps) {
                     return (
                       <div key={key} className={optionClass}>
                         <div className="flex-shrink-0 mt-0.5">
-                          {isOptionCorrect ? (
+                          {shouldShowCorrect ? (
                             <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                           ) : isOptionSelected && !isOptionCorrect ? (
                             <XCircle className="w-5 h-5 text-red-600" />
@@ -302,12 +307,10 @@ export default function Quiz({ questions, onExit }: QuizProps) {
 
   return (
     <div className="max-w-3xl w-full mx-auto">
-      {/* Progress Bar */}
       <div className="mb-8">
         <div className="flex justify-between text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">
           <span>Questão {currentIndex + 1} de {questions.length}</span>
           
-          {/* Update this div to include the timer next to the percentage */}
           <div className="flex gap-4">
             <span className="font-mono bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-700 dark:text-slate-300">
               ⏱ {formatTime(timeElapsed)}
@@ -345,12 +348,15 @@ export default function Quiz({ questions, onExit }: QuizProps) {
               const isSelected = selectedOption === key;
               const isCorrect = currentQuestion.correct.toLowerCase() === key;
               
+              // Lógica para omitir a resposta correta durante o quiz ativo
+              const shouldShowCorrect = isCorrect && (!hideCorrectAnswer || isSelected);
+              
               let buttonClass = "w-full text-left p-4 rounded-xl border-2 transition-all flex items-start gap-3 ";
               
               if (!showFeedback) {
                 buttonClass += "border-slate-200 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-slate-700 dark:text-slate-300";
               } else {
-                if (isCorrect) {
+                if (shouldShowCorrect) {
                   buttonClass += "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-900 dark:text-emerald-300";
                 } else if (isSelected && !isCorrect) {
                   buttonClass += "border-red-500 bg-red-50 dark:bg-red-900/20 text-red-900 dark:text-red-300";
@@ -367,7 +373,7 @@ export default function Quiz({ questions, onExit }: QuizProps) {
                   className={buttonClass}
                 >
                   <div className="flex-shrink-0 mt-0.5">
-                    {showFeedback && isCorrect ? (
+                    {showFeedback && shouldShowCorrect ? (
                       <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                     ) : showFeedback && isSelected && !isCorrect ? (
                       <XCircle className="w-5 h-5 text-red-600" />
