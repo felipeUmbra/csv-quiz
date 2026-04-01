@@ -12,10 +12,13 @@ export interface Question {
 interface QuizProps {
   questions: Question[];
   onExit: () => void;
-  hideCorrectAnswer?: boolean; // Nova propriedade adicionada
+  hideCorrectAnswer?: boolean;
+  onFinish?: () => void;
+  onRestart?: () => void;
 }
 
-export default function Quiz({ questions, onExit, hideCorrectAnswer = false }: QuizProps) {
+// CORREÇÃO: Adicionados onFinish e onRestart aqui na declaração do componente
+export default function Quiz({ questions, onExit, hideCorrectAnswer = false, onFinish, onRestart }: QuizProps) {
 
   const shuffleQuestionsAndOptions = (qs: Question[]) => {
     return qs.map(q => {
@@ -84,7 +87,8 @@ export default function Quiz({ questions, onExit, hideCorrectAnswer = false }: Q
     setQuizFinished(false);
     setUserAnswers({});
     setTimeElapsed(0); 
-  }, []);
+    if (onRestart) onRestart()
+  }, [onRestart]);
 
   const currentQuestion = localQuestions[currentIndex];
   const optionKeys = useMemo(() => currentQuestion ? Object.keys(currentQuestion.options).sort() : [], [currentQuestion]);
@@ -108,8 +112,9 @@ export default function Quiz({ questions, onExit, hideCorrectAnswer = false }: Q
       setShowFeedback(false);
     } else {
       setQuizFinished(true);
+      if (onFinish) onFinish();
     }
-  }, [currentIndex, localQuestions.length]);
+  }, [currentIndex, localQuestions.length, onFinish]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

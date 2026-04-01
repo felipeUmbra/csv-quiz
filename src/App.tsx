@@ -15,10 +15,12 @@ export default function App() {
     return true;
   });
 
-  // Novos estados para as configurações e tela intermediária
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [enableCustomQuestionCount, setEnableCustomQuestionCount] = useState(false);
   const [hideCorrectAnswer, setHideCorrectAnswer] = useState(false);
+  
+  // Estado para saber se o quiz chegou na tela de resultados
+  const [isQuizFinished, setIsQuizFinished] = useState(false);
   
   const [isConfiguringQuestions, setIsConfiguringQuestions] = useState(false);
   const [allParsedQuestions, setAllParsedQuestions] = useState<Question[]>([]);
@@ -91,28 +93,26 @@ export default function App() {
             throw new Error('Nenhuma pergunta encontrada no arquivo.');
           }
 
-          // Embaralha a ordem de todas as perguntas
           parsedQuestions = parsedQuestions.sort(() => 0.5 - Math.random());
 
           if (enableCustomQuestionCount) {
-            // Se a opção estiver ativa, vamos para a tela de configuração
             const counts: Record<string, number> = {};
             parsedQuestions.forEach(q => {
               counts[q.topic] = (counts[q.topic] || 0) + 1;
             });
             
             setTopicCounts(counts);
-            setTopicLimits(counts); // Pré-preenche com o total disponível
+            setTopicLimits(counts);
             setAllParsedQuestions(parsedQuestions);
             setIsConfiguringQuestions(true);
             setError(null);
           } else {
-            // Comportamento normal
             if (limit && limit > 0) {
               parsedQuestions = parsedQuestions.slice(0, limit);
             }
             setQuestions(parsedQuestions);
             setIsStarted(true);
+            setIsQuizFinished(false); // Reseta ao iniciar
             setError(null);
           }
         } catch (err: any) {
@@ -143,7 +143,6 @@ export default function App() {
       setError('Erro ao ler o arquivo.');
     };
     reader.readAsText(file);
-    // Limpa o input para permitir upload do mesmo arquivo repetidas vezes
     event.target.value = '';
   };
 
@@ -154,6 +153,7 @@ export default function App() {
   const restartQuiz = () => {
     setIsStarted(false);
     setIsConfiguringQuestions(false);
+    setIsQuizFinished(false); // Reseta ao sair
     setQuestions([]);
     setAllParsedQuestions([]);
     setError(null);
@@ -171,7 +171,6 @@ export default function App() {
     document.body.removeChild(link);
   };
 
-  // Funções da tela de configuração de questões
   const handleTopicLimitChange = (topic: string, value: number) => {
     const max = topicCounts[topic];
     let newValue = value;
@@ -197,11 +196,11 @@ export default function App() {
       return;
     }
 
-    // Embaralha novamente as perguntas selecionadas
     finalQuestions = finalQuestions.sort(() => 0.5 - Math.random());
     setQuestions(finalQuestions);
     setIsConfiguringQuestions(false);
     setIsStarted(true);
+    setIsQuizFinished(false); // Garante que o quiz não comece finalizado
     setError(null);
   };
 
@@ -223,13 +222,18 @@ export default function App() {
             >
               {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
-            <button
-              onClick={() => setIsSettingsOpen(true)}
-              className="p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-              title="Configurações"
-            >
-              <Settings className="w-5 h-5" />
-            </button>
+            
+            {/* LOGICA DE EXIBIÇÃO: Só mostra se NÃO começou (tela inicial) ou se o Quiz JÁ terminou */}
+            {((!isStarted && !isConfiguringQuestions) || isQuizFinished) && (
+              <button
+                onClick={() => setIsSettingsOpen(true)}
+                className="p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                title="Configurações"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+            )}
+
             {(isStarted || isConfiguringQuestions) && (
               <button 
                 onClick={restartQuiz}
@@ -370,7 +374,9 @@ export default function App() {
           <Quiz 
             questions={questions} 
             onExit={restartQuiz} 
-            hideCorrectAnswer={hideCorrectAnswer} 
+            hideCorrectAnswer={hideCorrectAnswer}
+            onFinish={() => setIsQuizFinished(true)} 
+            onRestart={() => setIsQuizFinished(false)}
           />
         )}
       </main>
@@ -393,7 +399,7 @@ export default function App() {
             </div>
             
             <div className="p-6">
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <label className="flex items-start gap-3 cursor-pointer group">
                   <div className="flex items-center h-6">
                     <input
@@ -412,6 +418,7 @@ export default function App() {
                     </span>
                   </div>
                 </label>
+
                 <label className="flex items-start gap-3 cursor-pointer group">
                   <div className="flex items-center h-6">
                     <input
