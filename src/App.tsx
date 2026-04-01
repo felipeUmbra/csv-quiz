@@ -42,28 +42,14 @@ export default function App() {
       skipEmptyLines: true,
       complete: (results) => {
         try {
-<<<<<<< HEAD
-          // 1. Verificação se o arquivo tem dados/perguntas
-          if (!results.data || results.data.length === 0) {
-            throw new Error('Nenhuma pergunta encontrada no arquivo CSV.');
-          }
-
-          let parsedQuestions: Question[] = results.data.map((row: any, index: number) => {
-            const linhaCSV = index + 2; // +1 pelo cabeçalho, +1 porque o index começa em 0
-
-            // 2. Verificação se existe pergunta na linha
-            if (!row['pergunta'] || row['pergunta'].trim() === '') {
-              throw new Error(`Erro na linha ${linhaCSV}: A coluna "pergunta" está vazia ou não existe.`);
-=======
           let parsedQuestions: Question[] = results.data.map((row: any) => {
             if (!row['pergunta'] || !row['alternativa correta']) {
               throw new Error('Formato de CSV inválido. Verifique as colunas "pergunta" e "alternativa correta".');
->>>>>>> changes
             }
             
             // 3. Verificação se existe resposta correta indicada
             if (!row['alternativa correta'] || row['alternativa correta'].trim() === '') {
-              throw new Error(`Erro na linha ${linhaCSV}: A "alternativa correta" não foi especificada para a pergunta "${row['pergunta']}".`);
+              throw new Error(`A "alternativa correta" não foi especificada para a pergunta "${row['pergunta']}".`);
             }
 
             const options: Record<string, string> = {};
@@ -76,14 +62,14 @@ export default function App() {
 
             // 4. Verificação se há pelo menos as alternativas 'a' e 'b'
             if (!options['a'] || !options['b']) {
-              throw new Error(`Erro na linha ${linhaCSV}: A pergunta "${row['pergunta']}" deve ter pelo menos as "alternativa a" e "alternativa b" preenchidas.`);
+              throw new Error(`A pergunta "${row['pergunta']}" deve ter pelo menos as "alternativa a" e "alternativa b" preenchidas.`);
             }
 
             const correct = row['alternativa correta'].toLowerCase().trim();
             
             // Verificação extra para garantir que a alternativa correta apontada realmente existe entre as opções
             if (!options[correct]) {
-              throw new Error(`Erro na linha ${linhaCSV}: A alternativa correta apontada ("${correct}") está vazia ou não existe nas opções desta pergunta.`);
+              throw new Error(`A alternativa correta apontada ("${correct}") está vazia ou não existe nas opções desta pergunta.`);
             }
 
             const optionsArray = Object.keys(options).map(k => ({ originalKey: k, value: options[k] }));
@@ -111,10 +97,7 @@ export default function App() {
 
           parsedQuestions = parsedQuestions.sort(() => 0.5 - Math.random());
 
-<<<<<<< HEAD
-=======
           let finalParsedQuestions = parsedQuestions;
->>>>>>> changes
           if (limit && limit > 0) {
             finalParsedQuestions = parsedQuestions.slice(0, limit);
           }
@@ -174,14 +157,7 @@ export default function App() {
     };
     
     reader.readAsText(file);
-<<<<<<< HEAD
-
-    // ESSA É A LINHA MÁGICA: 
-    // Reseta o valor do input para permitir o reenvio do mesmo arquivo
-    event.target.value = ''; 
-=======
     event.target.value = '';
->>>>>>> changes
   };
 
   const loadDefaultQuiz = () => {
