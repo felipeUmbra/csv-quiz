@@ -10,7 +10,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
-      return document.documentElement.classList.contains('dark') || true;
+      return document.documentElement.classList.contains('dark');
     }
     return true;
   });
@@ -122,7 +122,7 @@ export default function App() {
           setError(err.message || 'Erro ao processar o arquivo CSV.');
         }
       },
-      error: (err) => {
+      error: (err: any) => {
         setError(`Erro ao ler o arquivo: ${err.message}`);
       }
     });
@@ -393,7 +393,6 @@ export default function App() {
             onExit={restartQuiz} 
             hideCorrectAnswer={hideCorrectAnswer}
             onFinish={() => setIsQuizFinished(true)} 
-            onPlayAgain={handlePlayAgainApp} 
           />
         )}
       </main>
