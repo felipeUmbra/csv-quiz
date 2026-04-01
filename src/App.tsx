@@ -19,7 +19,6 @@ export default function App() {
   const [enableCustomQuestionCount, setEnableCustomQuestionCount] = useState(false);
   const [hideCorrectAnswer, setHideCorrectAnswer] = useState(false);
   
-  // Estado para saber se o quiz chegou na tela de resultados
   const [isQuizFinished, setIsQuizFinished] = useState(false);
   
   const [isConfiguringQuestions, setIsConfiguringQuestions] = useState(false);
@@ -95,24 +94,28 @@ export default function App() {
 
           parsedQuestions = parsedQuestions.sort(() => 0.5 - Math.random());
 
+          let finalParsedQuestions = parsedQuestions;
+          if (limit && limit > 0) {
+            finalParsedQuestions = parsedQuestions.slice(0, limit);
+          }
+
+          // Agora calculamos os totais sempre, para não perder o pool de questões
+          const counts: Record<string, number> = {};
+          finalParsedQuestions.forEach(q => {
+            counts[q.topic] = (counts[q.topic] || 0) + 1;
+          });
+          
+          setTopicCounts(counts);
+          setTopicLimits(counts);
+          setAllParsedQuestions(finalParsedQuestions);
+
           if (enableCustomQuestionCount) {
-            const counts: Record<string, number> = {};
-            parsedQuestions.forEach(q => {
-              counts[q.topic] = (counts[q.topic] || 0) + 1;
-            });
-            
-            setTopicCounts(counts);
-            setTopicLimits(counts);
-            setAllParsedQuestions(parsedQuestions);
             setIsConfiguringQuestions(true);
             setError(null);
           } else {
-            if (limit && limit > 0) {
-              parsedQuestions = parsedQuestions.slice(0, limit);
-            }
-            setQuestions(parsedQuestions);
+            setQuestions(finalParsedQuestions);
             setIsStarted(true);
-            setIsQuizFinished(false); // Reseta ao iniciar
+            setIsQuizFinished(false);
             setError(null);
           }
         } catch (err: any) {
@@ -153,10 +156,25 @@ export default function App() {
   const restartQuiz = () => {
     setIsStarted(false);
     setIsConfiguringQuestions(false);
-    setIsQuizFinished(false); // Reseta ao sair
+    setIsQuizFinished(false);
     setQuestions([]);
     setAllParsedQuestions([]);
     setError(null);
+  };
+
+  // Nova função para lidar com "Fazer Novamente"
+  const handlePlayAgainApp = () => {
+    if (enableCustomQuestionCount) {
+      // Se a opção estiver ativa, manda pra tela de configuração antes de iniciar
+      setIsQuizFinished(false);
+      setIsStarted(false);
+      setIsConfiguringQuestions(true);
+    } else {
+      // Se estiver desativada, embaralha todas as perguntas novamente
+      const shuffled = [...allParsedQuestions].sort(() => 0.5 - Math.random());
+      setQuestions(shuffled);
+      setIsQuizFinished(false);
+    }
   };
 
   const downloadTemplate = () => {
@@ -200,7 +218,7 @@ export default function App() {
     setQuestions(finalQuestions);
     setIsConfiguringQuestions(false);
     setIsStarted(true);
-    setIsQuizFinished(false); // Garante que o quiz não comece finalizado
+    setIsQuizFinished(false);
     setError(null);
   };
 
@@ -212,7 +230,7 @@ export default function App() {
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
               <FileText className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">CSV Quiz Generator</h1>
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">Gerador de</h1>
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
             <button
@@ -223,7 +241,6 @@ export default function App() {
               {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
             
-            {/* LOGICA DE EXIBIÇÃO: Só mostra se NÃO começou (tela inicial) ou se o Quiz JÁ terminou */}
             {((!isStarted && !isConfiguringQuestions) || isQuizFinished) && (
               <button
                 onClick={() => setIsSettingsOpen(true)}
@@ -376,7 +393,7 @@ export default function App() {
             onExit={restartQuiz} 
             hideCorrectAnswer={hideCorrectAnswer}
             onFinish={() => setIsQuizFinished(true)} 
-            onRestart={() => setIsQuizFinished(false)}
+            onPlayAgain={handlePlayAgainApp} 
           />
         )}
       </main>
