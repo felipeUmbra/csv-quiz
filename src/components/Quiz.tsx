@@ -306,7 +306,7 @@ export default function Quiz({ questions, onExit, hideCorrectAnswer = false, onF
   }
 
   return (
-    <div className="max-w-3xl w-full mx-auto">
+    <div className="max-w-4xl w-full mx-auto">
       <div className="mb-8">
         <div className="flex justify-between text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">
           <span>Questão {currentIndex + 1} de {questions.length}</span>
