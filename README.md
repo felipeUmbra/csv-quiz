@@ -5,10 +5,14 @@ A modern, interactive web application that transforms CSV files into dynamic qui
 ## ✨ Features
 
 * **Instant Quiz Generation:** Upload a formatted CSV file and instantly get a responsive, interactive quiz.
+* **Topic-based Customization:** Choose exactly how many questions to pull from each specific topic before starting.
 * **Intelligent Randomization:** Both the order of the questions and the order of the multiple-choice alternatives are randomized every time you start or restart the quiz.
+* **Keyboard Shortcuts:** Fast-paced interaction using keys `A`-`H` for selecting options and `Enter` to navigate.
 * **Rich Feedback & Analytics:** * Real-time feedback on correct/incorrect answers.
     * Final score calculation.
+    * Detailed timer tracking.
     * Detailed performance breakdown categorized by topic.
+* **Study Settings:** Toggle "Omit correct answer" to challenge yourself by not seeing the right answer when you fail.
 * **Dark Mode Support:** Seamlessly toggle between Light and Dark themes for better readability.
 * **Print & Export:** Built-in support to print the final review or save it as a cleanly formatted PDF.
 * **Downloadable Template:** Users can download a base CSV template directly from the UI to understand the required formatting.
