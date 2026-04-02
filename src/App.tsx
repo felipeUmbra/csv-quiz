@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Papa from 'papaparse';
 import { Upload, FileText, PlayCircle, Download, Moon, Sun, Settings, X } from 'lucide-react';
 import Quiz, { Question } from './components/Quiz';
@@ -26,6 +26,10 @@ export default function App() {
   const [topicLimits, setTopicLimits] = useState<Record<string, number>>({});
   const [topicCounts, setTopicCounts] = useState<Record<string, number>>({});
 
+  // Refs for the settings button and popover content to handle click-outside
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
+  const settingsPopoverRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
@@ -33,6 +37,23 @@ export default function App() {
       document.documentElement.classList.remove('dark');
     }
   }, [isDarkMode]);
+
+  // Effect to handle clicking outside the popover to close it
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        settingsPopoverRef.current &&
+        !settingsPopoverRef.current.contains(event.target as Node) &&
+        settingsButtonRef.current &&
+        !settingsButtonRef.current.contains(event.target as Node)
+      ) {
+        setIsSettingsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isSettingsOpen]);
 
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
@@ -244,23 +265,98 @@ export default function App() {
             <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">Gerador de Teste</h1>
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
+            {/* Added relative positioning to this div to anchor the popover */}
+            <div className="relative flex items-center gap-2 sm:gap-4">
             <button
               onClick={toggleDarkMode}
               className="p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
               title="Alternar tema claro/escuro"
             >
               {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            </button>
-            
+            </button>            
             {((!isStarted && !isConfiguringQuestions) || isQuizFinished) && (
               <button
-                onClick={() => setIsSettingsOpen(true)}
+                ref={settingsButtonRef}
+                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
                 className="p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
                 title="Configurações"
               >
                 <Settings className="w-5 h-5" />
               </button>
             )}
+
+            {/* Popover content */}
+            {isSettingsOpen && (
+              <div
+                ref={settingsPopoverRef} // Attach ref to the popover content
+                className="absolute top-full left-12 mt-2 max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 z-50 animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right" // Adjusted positioning and animation
+              >
+                <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Settings className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                    Configurações
+                  </h2>
+                  <button
+                    onClick={() => setIsSettingsOpen(false)}
+                    className="p-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                
+                <div className="p-4">
+                  <div className="space-y-4">
+                    <label className="flex items-start gap-3 cursor-pointer group">
+                      <div className="flex items-center h-6">
+                        <input
+                          type="checkbox"
+                          checked={enableCustomQuestionCount}
+                          onChange={(e) => setEnableCustomQuestionCount(e.target.checked)}
+                          className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-900 dark:checked:bg-indigo-500 transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-base font-medium text-slate-900 dark:text-white block mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                          Definir número de Questões
+                        </span>
+                        <span className="text-sm text-slate-500 dark:text-slate-400">
+                          Permite escolher o número de perguntas antes de iniciar o teste.
+                        </span>
+                      </div>
+                    </label>
+
+                    <label className="flex items-start gap-3 cursor-pointer group">
+                      <div className="flex items-center h-6">
+                        <input
+                          type="checkbox"
+                          checked={hideCorrectAnswer}
+                          onChange={(e) => setHideCorrectAnswer(e.target.checked)}
+                          className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-900 dark:checked:bg-indigo-500 transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-base font-medium text-slate-900 dark:text-white block mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                          Omitir resposta correta
+                        </span>
+                        <span className="text-sm text-slate-500 dark:text-slate-400">
+                          Omite alternativa correta se você errar a questão.
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+                
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-b-2xl flex justify-end">
+                  <button
+                    onClick={() => setIsSettingsOpen(false)}
+                    className="px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors text-sm"
+                  >
+                    Concluir
+                  </button>
+                </div>
+              </div>
+            )}
+            </div> {/* End of relative div */}
 
             {(isStarted || isConfiguringQuestions) && (
               <button 
@@ -422,77 +518,6 @@ export default function App() {
           />
         )}
       </main>
-
-      {/* Janela Flutuante de Configurações */}
-      {isSettingsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 dark:bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md border border-slate-200 dark:border-slate-800 relative animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Settings className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                Configurações
-              </h2>
-              <button
-                onClick={() => setIsSettingsOpen(false)}
-                className="p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="p-6">
-              <div className="space-y-6">
-                <label className="flex items-start gap-3 cursor-pointer group">
-                  <div className="flex items-center h-6">
-                    <input
-                      type="checkbox"
-                      checked={enableCustomQuestionCount}
-                      onChange={(e) => setEnableCustomQuestionCount(e.target.checked)}
-                      className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-900 dark:checked:bg-indigo-500 transition-colors"
-                    />
-                  </div>
-                  <div>
-                    <span className="text-base font-medium text-slate-900 dark:text-white block mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                      Definir número de Questões
-                    </span>
-                    <span className="text-sm text-slate-500 dark:text-slate-400">
-                      Permite escolher a quantidade exata de perguntas por tópico antes de iniciar o quiz.
-                    </span>
-                  </div>
-                </label>
-
-                <label className="flex items-start gap-3 cursor-pointer group">
-                  <div className="flex items-center h-6">
-                    <input
-                      type="checkbox"
-                      checked={hideCorrectAnswer}
-                      onChange={(e) => setHideCorrectAnswer(e.target.checked)}
-                      className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-900 dark:checked:bg-indigo-500 transition-colors"
-                    />
-                  </div>
-                  <div>
-                    <span className="text-base font-medium text-slate-900 dark:text-white block mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                      Omitir resposta correta
-                    </span>
-                    <span className="text-sm text-slate-500 dark:text-slate-400">
-                      Não exibe qual era a alternativa correta caso você erre a questão.
-                    </span>
-                  </div>
-                </label>
-              </div>
-            </div>
-            
-            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-b-2xl flex justify-end">
-              <button
-                onClick={() => setIsSettingsOpen(false)}
-                className="px-6 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                Concluir
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
