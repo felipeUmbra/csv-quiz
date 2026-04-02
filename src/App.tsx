@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Papa from 'papaparse';
-import { Upload, FileText, PlayCircle, Download, Moon, Sun, Settings, X } from 'lucide-react';
+import { Upload, PlayCircle, Download, Moon, Sun, Settings, X } from 'lucide-react';
 import Quiz, { Question } from './components/Quiz';
-import { DEFAULT_CSV } from './data/defaultCsv';
+import { QUINTASERIE_CSV, ENEM_CSV, ENAMED_CSV, OAB_CSV } from './data/defaultCsv';
 
 export default function App() {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -26,9 +26,13 @@ export default function App() {
   const [topicLimits, setTopicLimits] = useState<Record<string, number>>({});
   const [topicCounts, setTopicCounts] = useState<Record<string, number>>({});
 
+  const [isExamplePopoverOpen, setIsExamplePopoverOpen] = useState(false);
+
   // Refs for the settings button and popover content to handle click-outside
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const settingsPopoverRef = useRef<HTMLDivElement>(null);
+  const exampleButtonRef = useRef<HTMLDivElement>(null);
+  const examplePopoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isDarkMode) {
@@ -49,11 +53,20 @@ export default function App() {
       ) {
         setIsSettingsOpen(false);
       }
+
+      if (
+        examplePopoverRef.current &&
+        !examplePopoverRef.current.contains(event.target as Node) &&
+        exampleButtonRef.current &&
+        !exampleButtonRef.current.contains(event.target as Node)
+      ) {
+        setIsExamplePopoverOpen(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isSettingsOpen]);
+  }, [isSettingsOpen, isExamplePopoverOpen]);
 
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
@@ -181,8 +194,9 @@ export default function App() {
     event.target.value = '';
   };
 
-  const loadDefaultQuiz = () => {
-    parseCSV(DEFAULT_CSV, 5);
+  const loadExampleQuiz = (csv: string) => {
+    parseCSV(csv, 5);
+    setIsExamplePopoverOpen(false);
   };
 
   const restartQuiz = () => {
@@ -444,17 +458,58 @@ export default function App() {
                 </p>
               </div>
 
-              <div 
-                onClick={loadDefaultQuiz}
-                className="rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-8 hover:border-emerald-500 dark:hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all cursor-pointer flex flex-col items-center justify-center min-h-[240px]"
-              >
-                <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mb-4 hover:scale-110 transition-transform">
-                  <PlayCircle className="w-8 h-8" />
+              <div className="relative">
+                <div 
+                  ref={exampleButtonRef}
+                  onClick={() => setIsExamplePopoverOpen(!isExamplePopoverOpen)}
+                  className="rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-8 hover:border-emerald-500 dark:hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all cursor-pointer flex flex-col items-center justify-center min-h-[240px] w-full"
+                >
+                  <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <PlayCircle className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Testar Exemplo</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 text-center">
+                    Escolha um dos nossos simulados prontos para testar.
+                  </p>
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Testar Exemplo</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 text-center">
-                  Carregue o questionário padrão sobre Fundamentos de Teste.
-                </p>
+
+                {isExamplePopoverOpen && (
+                  <div 
+                    ref={examplePopoverRef}
+                    className="absolute top-full left-0 right-0 mt-4 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
+                  >
+                    <div className="p-2 space-y-1">
+                      <button
+                        onClick={() => loadExampleQuiz(OAB_CSV)}
+                        className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors flex items-center gap-3"
+                      >
+                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                        <span className="font-medium">Teste da OAB</span>
+                      </button>
+                      <button
+                        onClick={() => loadExampleQuiz(QUINTASERIE_CSV)}
+                        className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors flex items-center gap-3"
+                      >
+                        <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                        <span className="font-medium">Teste da Quinta Série</span>
+                      </button>
+                      <button
+                        onClick={() => loadExampleQuiz(ENAMED_CSV)}
+                        className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors flex items-center gap-3"
+                      >
+                        <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                        <span className="font-medium">Teste do ENAMED</span>
+                      </button>
+                      <button
+                        onClick={() => loadExampleQuiz(ENEM_CSV)}
+                        className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors flex items-center gap-3"
+                      >
+                        <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                        <span className="font-medium">Teste do ENEM</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
