@@ -438,7 +438,7 @@ export default function App() {
                 <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                   <Upload className="w-8 h-8" />
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Fazer Upload de CSV</h3>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Fazer Upload de CSV</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 text-center">
                   Arraste e solte ou clique para selecionar seu arquivo.
                 </p>
