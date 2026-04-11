@@ -1,8 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Papa from 'papaparse';
-import { Upload, PlayCircle, Download, Moon, Sun, Settings, X } from 'lucide-react';
+import { Upload, PlayCircle, Download, Moon, Sun, Settings, X, Library, Trash2, Edit2, Check } from 'lucide-react';
 import Quiz, { Question } from './components/Quiz';
 import { QUINTASERIE_CSV, ENEM_CSV, ENAMED_CSV, OAB_CSV } from './data/defaultCsv';
+
+interface SavedQuiz {
+  id: string;
+  name: string;
+  date: string;
+  questions: Question[];
+}
 
 export default function App() {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -16,6 +23,13 @@ export default function App() {
   });
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [savedQuizzes, setSavedQuizzes] = useState<SavedQuiz[]>(() => {
+    const stored = localStorage.getItem('saved-quizzes');
+    return stored ? JSON.parse(stored) : [];
+  });
+  const [isSavedQuizzesOpen, setIsSavedQuizzesOpen] = useState(false);
+  const [editingQuizId, setEditingQuizId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
   const [enableCustomQuestionCount, setEnableCustomQuestionCount] = useState(false);
   const [hideCorrectAnswer, setHideCorrectAnswer] = useState(false);
   
@@ -31,6 +45,8 @@ export default function App() {
   // Refs for the settings button and popover content to handle click-outside
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const settingsPopoverRef = useRef<HTMLDivElement>(null);
+  const savedQuizzesButtonRef = useRef<HTMLButtonElement>(null);
+  const savedQuizzesPopoverRef = useRef<HTMLDivElement>(null);
   const exampleButtonRef = useRef<HTMLDivElement>(null);
   const examplePopoverRef = useRef<HTMLDivElement>(null);
 
@@ -55,6 +71,15 @@ export default function App() {
       }
 
       if (
+        savedQuizzesPopoverRef.current &&
+        !savedQuizzesPopoverRef.current.contains(event.target as Node) &&
+        savedQuizzesButtonRef.current &&
+        !savedQuizzesButtonRef.current.contains(event.target as Node)
+      ) {
+        setIsSavedQuizzesOpen(false);
+      }
+
+      if (
         examplePopoverRef.current &&
         !examplePopoverRef.current.contains(event.target as Node) &&
         exampleButtonRef.current &&
@@ -66,7 +91,7 @@ export default function App() {
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isSettingsOpen, isExamplePopoverOpen]);
+  }, [isSettingsOpen, isSavedQuizzesOpen, isExamplePopoverOpen]);
 
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
@@ -223,6 +248,48 @@ export default function App() {
     }
   };
 
+  const handleSaveQuiz = (quizQuestions: Question[]) => {
+    // Generate a unique ID with a fallback for non-secure contexts (HTTP) or older browsers
+    const uuid = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+      ? crypto.randomUUID() 
+      : Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+
+    const newQuiz: SavedQuiz = {
+      id: uuid,
+      name: `Simulado - ${quizQuestions[0]?.topic || 'Geral'}`,
+      date: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      questions: quizQuestions,
+    };
+    const updated = [newQuiz, ...savedQuizzes];
+    setSavedQuizzes(updated);
+    localStorage.setItem('saved-quizzes', JSON.stringify(updated));
+    alert('Quiz salvo com sucesso!');
+  };
+
+  const loadSavedQuiz = (quiz: SavedQuiz) => {
+    setQuestions(quiz.questions);
+    setAllParsedQuestions(quiz.questions);
+    setIsStarted(true);
+    setIsQuizFinished(false);
+    setIsConfiguringQuestions(false);
+    setIsSavedQuizzesOpen(false);
+    setError(null);
+  };
+
+  const renameSavedQuiz = (id: string, newName: string) => {
+    if (!newName.trim()) return;
+    const updated = savedQuizzes.map(q => q.id === id ? { ...q, name: newName } : q);
+    setSavedQuizzes(updated);
+    localStorage.setItem('saved-quizzes', JSON.stringify(updated));
+    setEditingQuizId(null);
+  };
+
+  const deleteSavedQuiz = (id: string) => {
+    const updated = savedQuizzes.filter(q => q.id !== id);
+    setSavedQuizzes(updated);
+    localStorage.setItem('saved-quizzes', JSON.stringify(updated));
+  };
+
   const downloadTemplate = () => {
     const templateContent = "Topico,pergunta,alternativa correta,alternativa a,alternativa b,alternativa c,alternativa d\nConhecimentos Gerais,Qual é a capital do Brasil?,a,Brasília,Rio de Janeiro,São Paulo,Salvador\nMatemática,Quanto é 2 + 2?,c,3,5,4,6";
     const blob = new Blob([templateContent], { type: 'text/csv;charset=utf-8;' });
@@ -289,15 +356,26 @@ export default function App() {
               {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>            
             {((!isStarted && !isConfiguringQuestions) || isQuizFinished) && (
-              <button
-                ref={settingsButtonRef}
-                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                className="p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-                title="Configurações"
-              >
-                <Settings className="w-5 h-5" />
-              </button>
+              <>
+                <button
+                  ref={savedQuizzesButtonRef}
+                  onClick={() => setIsSavedQuizzesOpen(!isSavedQuizzesOpen)}
+                  className="p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                  title="Quizzes Salvos"
+                >
+                  <Library className="w-5 h-5" />
+                </button>
+                <button
+                  ref={settingsButtonRef}
+                  onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                  className="p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                  title="Configurações"
+                >
+                  <Settings className="w-5 h-5" />
+                </button>
+              </>
             )}
+
 
             {/* Popover content */}
             {isSettingsOpen && (
@@ -367,6 +445,81 @@ export default function App() {
                   >
                     Concluir
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* Popover saved quizzes */}
+            {isSavedQuizzesOpen && (
+              <div
+                ref={savedQuizzesPopoverRef}
+                className="absolute top-full left-12 mt-2 w-80 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right"
+              >
+                <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Library className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                    Meus Quizzes
+                  </h2>
+                  <button onClick={() => setIsSavedQuizzesOpen(false)} className="p-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="max-h-[400px] overflow-y-auto p-2 space-y-1">
+                  {savedQuizzes.length === 0 ? (
+                    <p className="text-sm text-slate-500 dark:text-slate-400 p-4 text-center italic">Nenhum quiz salvo ainda.</p>
+                  ) : (
+                    savedQuizzes.map(quiz => (
+                      <div key={quiz.id} className="group flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors">
+                        {editingQuizId === quiz.id ? (
+                          <div className="flex-1 flex items-center gap-2 px-1">
+                            <input
+                              type="text"
+                              value={editingName}
+                              onChange={(e) => setEditingName(e.target.value)}
+                              className="flex-1 px-2 py-1 text-sm bg-white dark:bg-slate-900 border border-indigo-500 rounded-lg outline-none text-slate-900 dark:text-white"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') renameSavedQuiz(quiz.id, editingName);
+                                if (e.key === 'Escape') setEditingQuizId(null);
+                              }}
+                            />
+                            <button 
+                              onClick={() => renameSavedQuiz(quiz.id, editingName)}
+                              className="p-1.5 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <button onClick={() => loadSavedQuiz(quiz)} className="flex-1 text-left min-w-0">
+                              <p className="font-medium text-slate-900 dark:text-white truncate">{quiz.name}</p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">{quiz.date} • {quiz.questions.length} questões</p>
+                            </button>
+                            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                              <button
+                                onClick={() => {
+                                  setEditingQuizId(quiz.id);
+                                  setEditingName(quiz.name);
+                                }}
+                                className="p-2 text-slate-400 hover:text-indigo-500 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+                                title="Renomear"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => deleteSavedQuiz(quiz.id)}
+                                className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+                                title="Excluir"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             )}
@@ -554,6 +707,7 @@ export default function App() {
             questions={questions} 
             onExit={restartQuiz} 
             hideCorrectAnswer={hideCorrectAnswer}
+            onSave={handleSaveQuiz}
             onFinish={() => setIsQuizFinished(true)} 
             onRestart={() => {
               setIsQuizFinished(false);

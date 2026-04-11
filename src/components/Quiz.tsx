@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { CheckCircle2, XCircle, ArrowRight, RotateCcw, Printer, LogOut } from 'lucide-react';
+import { CheckCircle2, XCircle, ArrowRight, RotateCcw, Printer, LogOut, Save } from 'lucide-react';
 
 export interface Question {
   topic: string;
@@ -15,10 +15,11 @@ interface QuizProps {
   hideCorrectAnswer?: boolean;
   onFinish?: () => void;
   onRestart?: () => void;
+  onSave?: (questions: Question[]) => void;
 }
 
 // CORREÇÃO: Adicionados onFinish e onRestart aqui na declaração do componente
-export default function Quiz({ questions, onExit, hideCorrectAnswer = false, onFinish, onRestart }: QuizProps) {
+export default function Quiz({ questions, onExit, hideCorrectAnswer = false, onFinish, onRestart, onSave }: QuizProps) {
 
   const shuffleQuestionsAndOptions = (qs: Question[]) => {
     return qs.map(q => {
@@ -212,6 +213,13 @@ export default function Quiz({ questions, onExit, hideCorrectAnswer = false, onF
             >
               <RotateCcw className="w-5 h-5 mr-2" />
               Fazer Novamente
+            </button>
+            <button
+              onClick={() => onSave?.(localQuestions)}
+              className="inline-flex items-center justify-center px-6 py-3 bg-emerald-600 text-white font-medium rounded-xl hover:bg-emerald-700 transition-colors w-full sm:w-auto"
+            >
+              <Save className="w-5 h-5 mr-2" />
+              Salvar Quiz
             </button>
             <button
               onClick={() => window.print()}
