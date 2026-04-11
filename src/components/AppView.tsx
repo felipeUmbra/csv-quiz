@@ -71,7 +71,7 @@ export const AppView: React.FC<AppViewProps> = (props) => {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="Logo" className="w-5 h-5" />
+              <img src={`${import.meta.env.BASE_URL}favicon.ico`} alt="Logo" className="w-5 h-5" />
             </div>
             <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">{props.t.title}</h1>
           </div>
@@ -106,7 +106,7 @@ export const AppView: React.FC<AppViewProps> = (props) => {
               )}
 
               {props.isSettingsOpen && (
-                <div ref={props.settingsPopoverRef} className="absolute top-full left-12 mt-2 max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 z-50 animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right">
+                <div ref={props.settingsPopoverRef} className="fixed sm:absolute top-20 sm:top-full right-4 sm:right-0 mt-0 sm:mt-2 w-[calc(100vw-2rem)] sm:w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 z-50 animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right">
                   <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                       <Settings className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
@@ -152,7 +152,7 @@ export const AppView: React.FC<AppViewProps> = (props) => {
               )}
 
               {props.isSavedQuizzesOpen && (
-                <div ref={props.savedQuizzesPopoverRef} className="absolute top-full left-12 mt-2 w-80 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right">
+                <div ref={props.savedQuizzesPopoverRef} className="fixed sm:absolute top-20 sm:top-full right-4 sm:right-0 mt-0 sm:mt-2 w-[calc(100vw-2rem)] sm:w-80 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right">
                   <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2"><Library className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />{props.t.myQuizzes}</h2>
                     <button onClick={() => props.setIsSavedQuizzesOpen(false)} className="p-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><X className="w-4 h-4" /></button>
