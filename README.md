@@ -54,7 +54,7 @@ React 18 - UI Library
 Follow these instructions to get a copy of the project up and running on your local machine for development and testing purposes.
 
 Prerequisites
-You need to have Node.js (version 16 or higher) and npm installed on your machine.
+You need to have Node.js (version 22 or higher) and npm installed on your machine.
 
 Installation
 - Clone the repository:

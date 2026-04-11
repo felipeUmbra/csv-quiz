@@ -79,7 +79,7 @@ export const translations = {
     cancel: "Cancel",
     startQuiz: "Start Quiz",
     mainTitle: "Transform your data into knowledge",
-    mainTitleDesc: "Upload a CSV file containing questions and alternatives to generate an interactive quiz instantly.",
+    mainDesc: "Upload a CSV file containing questions and alternatives to generate an interactive quiz instantly.",
     uploadCsv: "Upload CSV",
     uploadDesc: "Drag and drop or click to select your file.",
     testExample: "Test Example",
