@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import React, { useState, useEffect, useRef } from 'react';
 import Papa from 'papaparse';
 import { Upload, PlayCircle, Download, Moon, Sun, Settings, X, Library, Trash2, Edit2, Check } from 'lucide-react';
