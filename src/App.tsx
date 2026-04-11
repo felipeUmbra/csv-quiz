@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Papa from 'papaparse';
 import { Question } from './components/Quiz';
 import { AppView } from './components/AppView';
+import { Language, translations } from './translations';
 
 export interface SavedQuiz {
   id: string;
@@ -34,6 +35,17 @@ export default function App() {
   const [enableCustomQuestionCount, setEnableCustomQuestionCount] = useState(false);
   const [hideCorrectAnswer, setHideCorrectAnswer] = useState(false);
   
+  const [language, setLanguage] = useState<Language>(() => {
+    const stored = localStorage.getItem('language');
+    return (stored as Language) || 'pt';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('language', language);
+  }, [language]);
+
+  const t = translations[language];
+
   const [isQuizFinished, setIsQuizFinished] = useState(false);
   const [activeSavedQuizId, setActiveSavedQuizId] = useState<string | null>(null);
   
@@ -282,7 +294,7 @@ export default function App() {
     const updated = [newQuiz, ...savedQuizzes];
     setSavedQuizzes(updated);
     localStorage.setItem('saved-quizzes', JSON.stringify(updated));
-    alert('Quiz salvo com sucesso!');
+    alert(t.savedSuccess);
   };
 
   const handleUploadAction = (action: 'save' | 'run' | 'both') => {
@@ -371,7 +383,7 @@ export default function App() {
     });
     
     if (finalQuestions.length === 0) {
-      setError('Selecione pelo menos uma questão para iniciar o quiz.');
+      setError(t.selectAtLeastOne);
       return;
     }
 
@@ -402,6 +414,9 @@ export default function App() {
       hideCorrectAnswer={hideCorrectAnswer}
       isExamplePopoverOpen={isExamplePopoverOpen}
       questions={questions}
+      language={language}
+      t={t}
+      setLanguage={setLanguage}
       toggleDarkMode={toggleDarkMode}
       setIsSavedQuizzesOpen={setIsSavedQuizzesOpen}
       setIsSettingsOpen={setIsSettingsOpen}

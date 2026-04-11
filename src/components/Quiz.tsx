@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle2, XCircle, ArrowRight, RotateCcw, Printer, LogOut, Save } from 'lucide-react';
+import { translations } from '../translations';
 
 export interface Question {
   topic: string;
@@ -16,10 +17,11 @@ interface QuizProps {
   onFinish?: (score: number) => void;
   onRestart?: () => void;
   onSave?: (questions: Question[]) => void;
+  t: typeof translations.pt;
 }
 
 // CORREÇÃO: Adicionados onFinish e onRestart aqui na declaração do componente
-export default function Quiz({ questions, onExit, hideCorrectAnswer = false, onFinish, onRestart, onSave }: QuizProps) {
+export default function Quiz({ questions, onExit, hideCorrectAnswer = false, onFinish, onRestart, onSave, t }: QuizProps) {
 
   const shuffleQuestionsAndOptions = (qs: Question[]) => {
     return qs.map(q => {
@@ -170,19 +172,19 @@ export default function Quiz({ questions, onExit, hideCorrectAnswer = false, onF
         className="max-w-4xl w-full mx-auto print:max-w-none print:m-0 print:p-0"
       >
         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 text-center mb-8 print:shadow-none print:border-none print:mb-4">
-          <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-4">Quiz Concluído!</h2>
+          <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-4">{t.quizFinished}</h2>
           <div className="flex justify-center items-center mb-6">
             <div className="relative w-32 h-32 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-800 border-4 border-indigo-100 dark:border-indigo-900/50 print:border-indigo-500">
               <span className="text-4xl font-bold text-indigo-600 dark:text-indigo-400">{percentage}%</span>
             </div>
           </div>
           <p className="text-lg text-slate-600 dark:text-slate-400 mb-8">
-            Você acertou <span className="font-bold text-slate-800 dark:text-white">{score}</span> de <span className="font-bold text-slate-800 dark:text-white">{questions.length}</span> perguntas em <span className="font-bold text-slate-800 dark:text-white">{formatTime(timeElapsed)}</span>.
+            {t.youGot} <span className="font-bold text-slate-800 dark:text-white">{score}</span> {t.of} <span className="font-bold text-slate-800 dark:text-white">{questions.length}</span> {t.questionsLabel} {t.inLabel} <span className="font-bold text-slate-800 dark:text-white">{formatTime(timeElapsed)}</span>.
           </p>
 
           {hasMultipleTopics && (
             <div className="mb-8 text-left bg-slate-50 dark:bg-slate-800/50 rounded-xl p-6 border border-slate-100 dark:border-slate-700 print:bg-transparent print:border-slate-300 print:break-inside-avoid">
-              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 print:text-black">Desempenho por Tópico</h3>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 print:text-black">{t.topicPerformance}</h3>
               <div className="space-y-4">
                 {topics.map(topic => {
                   const stat = topicStats[topic];
@@ -191,7 +193,7 @@ export default function Quiz({ questions, onExit, hideCorrectAnswer = false, onF
                     <div key={topic}>
                       <div className="flex justify-between text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                         <span>{topic}</span>
-                        <span>{stat.correct} de {stat.total} ({topicPercentage}%)</span>
+                        <span>{stat.correct} {t.of} {stat.total} ({topicPercentage}%)</span>
                       </div>
                       <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 print:bg-slate-100">
                         <div 
@@ -212,34 +214,34 @@ export default function Quiz({ questions, onExit, hideCorrectAnswer = false, onF
               className="inline-flex items-center justify-center px-6 py-3 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition-colors w-full sm:w-auto"
             >
               <RotateCcw className="w-5 h-5 mr-2" />
-              Fazer Novamente
+              {t.playAgain}
             </button>
             <button
               onClick={() => onSave?.(localQuestions)}
               className="inline-flex items-center justify-center px-6 py-3 bg-emerald-600 text-white font-medium rounded-xl hover:bg-emerald-700 transition-colors w-full sm:w-auto"
             >
               <Save className="w-5 h-5 mr-2" />
-              Salvar Quiz
+              {t.saveQuiz}
             </button>
             <button
               onClick={() => window.print()}
               className="inline-flex items-center justify-center px-6 py-3 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors w-full sm:w-auto"
             >
               <Printer className="w-5 h-5 mr-2" />
-              Imprimir / Salvar PDF
+              {t.printPdf}
             </button>
             <button
               onClick={onExit}
               className="inline-flex items-center justify-center px-6 py-3 bg-slate-900 dark:bg-slate-800 text-white font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors w-full sm:w-auto"
             >
               <LogOut className="w-5 h-5 mr-2" />
-              Sair do Quiz
+              {t.exitQuiz}
             </button>
           </div>
         </div>
 
         <div className="space-y-6">
-          <h3 className="text-2xl font-bold text-slate-800 dark:text-white px-2 print:text-black">Revisão das Respostas</h3>
+          <h3 className="text-2xl font-bold text-slate-800 dark:text-white px-2 print:text-black">{t.reviewAnswers}</h3>
           {questions.map((q, idx) => {
             const userAnswer = userAnswers[idx];
             const isCorrect = userAnswer === q.correct.toLowerCase();
@@ -261,7 +263,7 @@ export default function Quiz({ questions, onExit, hideCorrectAnswer = false, onF
                   </div>
                   <div>
                     <div className="inline-block px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold uppercase tracking-wider rounded-full mb-3">
-                      Questão {idx + 1} • {q.topic}
+                      {t.question} {idx + 1} • {q.topic}
                     </div>
                     <h4 className="text-lg font-medium text-slate-800 dark:text-slate-200 leading-relaxed">
                       {q.question}
@@ -317,13 +319,13 @@ export default function Quiz({ questions, onExit, hideCorrectAnswer = false, onF
     <div className="max-w-4xl w-full mx-auto">
       <div className="mb-8">
         <div className="flex justify-between text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">
-          <span>Questão {currentIndex + 1} de {questions.length}</span>
+          <span>{t.question} {currentIndex + 1} {t.of} {questions.length}</span>
           
           <div className="flex gap-4">
             <span className="font-mono bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-700 dark:text-slate-300">
               ⏱ {formatTime(timeElapsed)}
             </span>
-            <span>{Math.round(((currentIndex) / questions.length) * 100)}% Concluído</span>
+            <span>{Math.round(((currentIndex) / questions.length) * 100)}% {t.done}</span>
           </div>
         </div>
         <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2.5">
@@ -407,7 +409,7 @@ export default function Quiz({ questions, onExit, hideCorrectAnswer = false, onF
                 onClick={handleNextQuestion}
                 className="inline-flex items-center justify-center px-6 py-3 bg-slate-900 dark:bg-indigo-600 text-white font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-indigo-700 transition-colors"
               >
-                <span>{currentIndex < questions.length - 1 ? 'Próxima Questão' : 'Ver Resultados'}</span>
+                <span>{currentIndex < questions.length - 1 ? t.nextQuestion : t.viewResults}</span>
                 {currentIndex < questions.length - 1 ? (
                   <div className="ml-3 px-2 py-1 bg-slate-700 dark:bg-slate-800 rounded text-xs text-slate-300 dark:text-slate-400 font-mono flex items-center">
                     Enter ↵
