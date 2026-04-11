@@ -1,11 +1,10 @@
 /// <reference types="vite/client" />
 import React, { useState, useEffect, useRef } from 'react';
 import Papa from 'papaparse';
-import { Upload, PlayCircle, Download, Moon, Sun, Settings, X, Library, Trash2, Edit2, Check, Save } from 'lucide-react';
-import Quiz, { Question } from './components/Quiz';
-import { QUINTASERIE_CSV, ENEM_CSV, ENAMED_CSV, OAB_CSV } from './data/defaultCsv';
+import { Question } from './components/Quiz';
+import { AppView } from './components/AppView';
 
-interface SavedQuiz {
+export interface SavedQuiz {
   id: string;
   name: string;
   date: string;
@@ -99,7 +98,7 @@ export default function App() {
 
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
-  const parseCSV = (csvText: string, limit?: number) => {
+  const parseCSV = (csvText: string, onComplete: (qs: Question[]) => void) => {
     setActiveSavedQuizId(null);
     Papa.parse(csvText, {
       header: true,
@@ -160,12 +159,7 @@ export default function App() {
           });
 
           parsedQuestions = parsedQuestions.sort(() => 0.5 - Math.random());
-
-          let finalParsedQuestions = parsedQuestions;
-          if (limit && limit > 0) {
-            finalParsedQuestions = parsedQuestions.slice(0, limit);
-          }
-          setPendingQuestions(finalParsedQuestions);
+          onComplete(parsedQuestions);
           setError(null);
         } catch (err: any) {
           setError(err.message || 'Erro ao processar o arquivo CSV.');
@@ -196,7 +190,7 @@ export default function App() {
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target?.result as string;
-      parseCSV(text);
+      parseCSV(text, (qs) => setPendingQuestions(qs));
     };
     reader.onerror = () => {
       setError('Erro ao ler o arquivo.');
@@ -207,7 +201,9 @@ export default function App() {
   };
 
   const loadExampleQuiz = (csv: string) => {
-    parseCSV(csv, 5);
+    parseCSV(csv, (qs) => {
+      startQuizWithQuestions(qs.slice(0, 5));
+    });
     setIsExamplePopoverOpen(false);
   };
 
@@ -219,6 +215,41 @@ export default function App() {
     setAllParsedQuestions([]);
     setActiveSavedQuizId(null);
     setError(null);
+  };
+
+  const startQuizWithQuestions = (questionsToUse: Question[]) => {
+    const counts: Record<string, number> = {};
+    questionsToUse.forEach(q => {
+      counts[q.topic] = (counts[q.topic] || 0) + 1;
+    });
+    
+    setTopicCounts(counts);
+    setTopicLimits(counts);
+    setAllParsedQuestions(questionsToUse);
+    setIsQuizFinished(false);
+
+    if (enableCustomQuestionCount) {
+      setIsConfiguringQuestions(true);
+      setIsStarted(false);
+    } else {
+      setQuestions(questionsToUse);
+      setIsStarted(true);
+      setIsConfiguringQuestions(false);
+    }
+  };
+
+  const handleQuizRestart = () => {
+    setIsQuizFinished(false);
+    if (enableCustomQuestionCount) {
+      setIsStarted(false);
+      setIsConfiguringQuestions(true);
+      const counts: Record<string, number> = {};
+      allParsedQuestions.forEach(q => counts[q.topic] = (counts[q.topic] || 0) + 1);
+      setTopicCounts(counts);
+      setTopicLimits(prev => Object.keys(prev).length > 0 ? prev : counts);
+    } else {
+      setQuestions([...allParsedQuestions].sort(() => 0.5 - Math.random()));
+    }
   };
 
   // Nova função para lidar com "Fazer Novamente"
@@ -264,22 +295,7 @@ export default function App() {
     }
 
     if (action === 'run' || action === 'both') {
-      const counts: Record<string, number> = {};
-      questionsToUse.forEach(q => {
-        counts[q.topic] = (counts[q.topic] || 0) + 1;
-      });
-      
-      setTopicCounts(counts);
-      setTopicLimits(counts);
-      setAllParsedQuestions(questionsToUse);
-
-      if (enableCustomQuestionCount) {
-        setIsConfiguringQuestions(true);
-      } else {
-        setQuestions(questionsToUse);
-        setIsStarted(true);
-        setIsQuizFinished(false);
-      }
+      startQuizWithQuestions(questionsToUse);
     }
 
     setPendingQuestions(null);
@@ -302,23 +318,8 @@ export default function App() {
   };
 
   const loadSavedQuiz = (quiz: SavedQuiz) => {
-    setAllParsedQuestions(quiz.questions);
     setActiveSavedQuizId(quiz.id);
-    
-    if (enableCustomQuestionCount) {
-      const counts: Record<string, number> = {};
-      quiz.questions.forEach(q => counts[q.topic] = (counts[q.topic] || 0) + 1);
-      setTopicCounts(counts);
-      setTopicLimits(counts);
-      setIsConfiguringQuestions(true);
-      setIsStarted(false);
-    } else {
-      setQuestions(quiz.questions);
-      setIsStarted(true);
-      setIsConfiguringQuestions(false);
-    }
-    
-    setIsQuizFinished(false);
+    startQuizWithQuestions(quiz.questions);
     setIsSavedQuizzesOpen(false);
     setError(null);
   };
@@ -383,444 +384,52 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans selection:bg-indigo-100 dark:selection:bg-indigo-900 selection:text-indigo-900 dark:selection:text-indigo-100 transition-colors duration-200">
-      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10 transition-colors duration-200">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="Logo" className="w-5 h-5" />
-            </div>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">Gerador de Teste</h1>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-4">
-            {/* Added relative positioning to this div to anchor the popover */}
-            <div className="relative flex items-center gap-2 sm:gap-4">
-            <button
-              onClick={toggleDarkMode}
-              className="p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-              title="Alternar tema claro/escuro"
-            >
-              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            </button>            
-            {((!isStarted && !isConfiguringQuestions) || isQuizFinished) && (
-              <>
-                <button
-                  ref={savedQuizzesButtonRef}
-                  onClick={() => setIsSavedQuizzesOpen(!isSavedQuizzesOpen)}
-                  className="p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-                  title="Quizzes Salvos"
-                >
-                  <Library className="w-5 h-5" />
-                </button>
-                <button
-                  ref={settingsButtonRef}
-                  onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                  className="p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-                  title="Configurações"
-                >
-                  <Settings className="w-5 h-5" />
-                </button>
-              </>
-            )}
-
-
-            {/* Popover content */}
-            {isSettingsOpen && (
-              <div
-                ref={settingsPopoverRef} // Attach ref to the popover content
-                className="absolute top-full left-12 mt-2 max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 z-50 animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right" // Adjusted positioning and animation
-              >
-                <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
-                  <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <Settings className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                    Configurações
-                  </h2>
-                  <button
-                    onClick={() => setIsSettingsOpen(false)}
-                    className="p-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-                
-                <div className="p-4">
-                  <div className="space-y-4">
-                    <label className="flex items-start gap-3 cursor-pointer group">
-                      <div className="flex items-center h-6">
-                        <input
-                          type="checkbox"
-                          checked={enableCustomQuestionCount}
-                          onChange={(e) => setEnableCustomQuestionCount(e.target.checked)}
-                          className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-900 dark:checked:bg-indigo-500 transition-colors"
-                        />
-                      </div>
-                      <div>
-                        <span className="text-base font-medium text-slate-900 dark:text-white block mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                          Definir número de Questões
-                        </span>
-                        <span className="text-sm text-slate-500 dark:text-slate-400">
-                          Permite escolher o número de perguntas antes de iniciar o teste.
-                        </span>
-                      </div>
-                    </label>
-
-                    <label className="flex items-start gap-3 cursor-pointer group">
-                      <div className="flex items-center h-6">
-                        <input
-                          type="checkbox"
-                          checked={hideCorrectAnswer}
-                          onChange={(e) => setHideCorrectAnswer(e.target.checked)}
-                          className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-900 dark:checked:bg-indigo-500 transition-colors"
-                        />
-                      </div>
-                      <div>
-                        <span className="text-base font-medium text-slate-900 dark:text-white block mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                          Omitir resposta correta
-                        </span>
-                        <span className="text-sm text-slate-500 dark:text-slate-400">
-                          Omite alternativa correta se você errar a questão.
-                        </span>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-                
-                <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-b-2xl flex justify-end">
-                  <button
-                    onClick={() => setIsSettingsOpen(false)}
-                    className="px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors text-sm"
-                  >
-                    Concluir
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Popover saved quizzes */}
-            {isSavedQuizzesOpen && (
-              <div
-                ref={savedQuizzesPopoverRef}
-                className="absolute top-full left-12 mt-2 w-80 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right"
-              >
-                <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                  <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <Library className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                    Meus Quizzes
-                  </h2>
-                  <button onClick={() => setIsSavedQuizzesOpen(false)} className="p-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-                <div className="max-h-[400px] overflow-y-auto p-2 space-y-1">
-                  {savedQuizzes.length === 0 ? (
-                    <p className="text-sm text-slate-500 dark:text-slate-400 p-4 text-center italic">Nenhum quiz salvo ainda.</p>
-                  ) : (
-                    savedQuizzes.map(quiz => (
-                      <div key={quiz.id} className="group flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors">
-                        {editingQuizId === quiz.id ? (
-                          <div className="flex-1 flex items-center gap-2 px-1">
-                            <input
-                              type="text"
-                              value={editingName}
-                              onChange={(e) => setEditingName(e.target.value)}
-                              className="flex-1 px-2 py-1 text-sm bg-white dark:bg-slate-900 border border-indigo-500 rounded-lg outline-none text-slate-900 dark:text-white"
-                              autoFocus
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') renameSavedQuiz(quiz.id, editingName);
-                                if (e.key === 'Escape') setEditingQuizId(null);
-                              }}
-                            />
-                            <button 
-                              onClick={() => renameSavedQuiz(quiz.id, editingName)}
-                              className="p-1.5 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
-                            >
-                              <Check className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ) : (
-                          <>
-                            <button onClick={() => loadSavedQuiz(quiz)} className="flex-1 text-left min-w-0">
-                              <p className="font-medium text-slate-900 dark:text-white truncate">{quiz.name}</p>
-                              <p className="text-xs text-slate-500 dark:text-slate-400">
-                                {quiz.date} • {quiz.questions.length} questões
-                                {typeof quiz.highestScore === 'number' ? ` • Recorde: ${quiz.highestScore}%` : ''}
-                              </p>
-                            </button>
-                            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                              <button
-                                onClick={() => {
-                                  setEditingQuizId(quiz.id);
-                                  setEditingName(quiz.name);
-                                }}
-                                className="p-2 text-slate-400 hover:text-indigo-500 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
-                                title="Renomear"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => deleteSavedQuiz(quiz.id)}
-                                className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
-                                title="Excluir"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-            </div> {/* End of relative div */}
-
-            {(isStarted || isConfiguringQuestions) && (
-              <button 
-                onClick={restartQuiz}
-                className="text-sm font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors print:hidden"
-              >
-                Sair do Quiz
-              </button>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {pendingQuestions && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white">Arquivo Processado!</h3>
-                <button 
-                  onClick={() => setPendingQuestions(null)}
-                  className="p-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-              <div className="p-6">
-                <p className="text-slate-600 dark:text-slate-400 mb-6">
-                  O que você deseja fazer com as <strong>{pendingQuestions.length} questões</strong> encontradas?
-                </p>
-                <div className="grid gap-3">
-                  <button
-                    onClick={() => handleUploadAction('run')}
-                    className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition-colors"
-                  >
-                    <PlayCircle className="w-5 h-5" />
-                    Apenas Iniciar
-                  </button>
-                  <button
-                    onClick={() => handleUploadAction('both')}
-                    className="flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white font-medium rounded-xl hover:bg-emerald-700 transition-colors"
-                  >
-                    <Save className="w-5 h-5" />
-                    Salvar e Iniciar
-                  </button>
-                  <button
-                    onClick={() => handleUploadAction('save')}
-                    className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                  >
-                    <Library className="w-5 h-5" />
-                    Apenas Salvar
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {error && (
-          <div className="mb-8 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400 text-sm font-medium max-w-2xl mx-auto text-center">
-            {error}
-          </div>
-        )}
-
-        {isConfiguringQuestions ? (
-          <div className="max-w-2xl mx-auto bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Configurar Questões por Tópico</h2>
-            <p className="text-slate-500 dark:text-slate-400 mb-8">Defina a quantidade de perguntas que deseja extrair de cada tópico.</p>
-            
-            <div className="space-y-4 mb-8">
-              {Object.keys(topicCounts).map(topic => (
-                <div key={topic} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
-                  <div>
-                    <h3 className="font-semibold text-slate-800 dark:text-slate-200">{topic}</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Total disponível: {topicCounts[topic]}</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Qtd:</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max={topicCounts[topic]}
-                      value={topicLimits[topic]}
-                      onChange={(e) => handleTopicLimitChange(topic, parseInt(e.target.value))}
-                      className="w-20 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none text-center font-medium"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="flex flex-col sm:flex-row gap-4 justify-end border-t border-slate-100 dark:border-slate-800 pt-6">
-              <button
-                onClick={restartQuiz}
-                className="px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors w-full sm:w-auto"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={startCustomQuiz}
-                className="px-6 py-3 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition-colors w-full sm:w-auto"
-              >
-                Iniciar Quiz
-              </button>
-            </div>
-          </div>
-        ) : !isStarted ? (
-          <div className="max-w-2xl mx-auto text-center">
-            <h2 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-5xl mb-6">
-              Transforme seus dados em conhecimento
-            </h2>
-            <p className="text-lg text-slate-600 dark:text-slate-400 mb-12">
-              Faça upload de um arquivo CSV contendo perguntas e alternativas para gerar um questionário interativo instantaneamente.
-            </p>
-
-            <div className="grid sm:grid-cols-2 gap-6">
-              <div className="relative group rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-8 hover:border-indigo-500 dark:hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all cursor-pointer flex flex-col items-center justify-center min-h-[240px]">
-                <input
-                  type="file"
-                  accept=".csv"
-                  onChange={handleFileUpload}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                />
-                <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Upload className="w-8 h-8" />
-                </div>
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Fazer Upload de CSV</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 text-center">
-                  Arraste e solte ou clique para selecionar seu arquivo.
-                </p>
-              </div>
-
-              <div className="relative">
-                <div 
-                  ref={exampleButtonRef}
-                  onClick={() => setIsExamplePopoverOpen(!isExamplePopoverOpen)}
-                  className="rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-8 hover:border-emerald-500 dark:hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all cursor-pointer flex flex-col items-center justify-center min-h-[240px] w-full"
-                >
-                  <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <PlayCircle className="w-8 h-8" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Testar Exemplo</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 text-center">
-                    Escolha um dos nossos simulados prontos para testar.
-                  </p>
-                </div>
-
-                {isExamplePopoverOpen && (
-                  <div 
-                    ref={examplePopoverRef}
-                    className="absolute top-full left-0 right-0 mt-4 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
-                  >
-                    <div className="p-2 space-y-1">
-                      <button
-                        onClick={() => loadExampleQuiz(OAB_CSV)}
-                        className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors flex items-center gap-3"
-                      >
-                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                        <span className="font-medium">Teste da OAB</span>
-                      </button>
-                      <button
-                        onClick={() => loadExampleQuiz(QUINTASERIE_CSV)}
-                        className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors flex items-center gap-3"
-                      >
-                        <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                        <span className="font-medium">Teste da Quinta Série</span>
-                      </button>
-                      <button
-                        onClick={() => loadExampleQuiz(ENAMED_CSV)}
-                        className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors flex items-center gap-3"
-                      >
-                        <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-                        <span className="font-medium">Teste do ENAMED</span>
-                      </button>
-                      <button
-                        onClick={() => loadExampleQuiz(ENEM_CSV)}
-                        className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors flex items-center gap-3"
-                      >
-                        <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
-                        <span className="font-medium">Teste do ENEM</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="mt-12 text-left bg-slate-100 dark:bg-slate-800/50 rounded-xl p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-                <h4 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider">Formato Esperado do CSV</h4>
-                <button
-                  onClick={downloadTemplate}
-                  className="inline-flex items-center text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Baixar Modelo CSV
-                </button>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm text-slate-600 dark:text-slate-400">
-                  <thead>
-                    <tr className="border-b border-slate-300 dark:border-slate-700">
-                      <th className="pb-2 font-medium text-left">Topico</th>
-                      <th className="pb-2 font-medium text-left">pergunta</th>
-                      <th className="pb-2 font-medium text-left">alternativa correta</th>
-                      <th className="pb-2 font-medium text-left">alternativa a</th>
-                      <th className="pb-2 font-medium text-left">alternativa b</th>
-                      <th className="pb-2 font-medium text-left">... (até h)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td className="pt-2">Matemática</td>
-                      <td className="pt-2">Quanto é 2+2?</td>
-                      <td className="pt-2">a</td>
-                      <td className="pt-2">4</td>
-                      <td className="pt-2">...</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <Quiz 
-            questions={questions} 
-            onExit={restartQuiz} 
-            hideCorrectAnswer={hideCorrectAnswer}
-            onSave={handleSaveQuiz}
-            onFinish={(score) => handleQuizFinish(score)} 
-            onRestart={() => {
-              setIsQuizFinished(false);
-              // Verifica se a opção de "Definir número de questões" foi ativada na tela de resultados
-              if (enableCustomQuestionCount) {
-                setIsStarted(false);
-                setIsConfiguringQuestions(true);
-                const counts: Record<string, number> = {};
-                allParsedQuestions.forEach(q => counts[q.topic] = (counts[q.topic] || 0) + 1);
-                setTopicCounts(counts);
-                setTopicLimits(prev => Object.keys(prev).length > 0 ? prev : counts);
-              } else {
-                // Se não, envia todas as perguntas embaralhadas (o que zera o Quiz.tsx automaticamente)
-                setQuestions([...allParsedQuestions].sort(() => 0.5 - Math.random()));
-              }
-            }}
-          />
-        )}
-      </main>
-    </div>
+    <AppView
+      isDarkMode={isDarkMode}
+      isStarted={isStarted}
+      isConfiguringQuestions={isConfiguringQuestions}
+      isQuizFinished={isQuizFinished}
+      error={error}
+      pendingQuestions={pendingQuestions}
+      topicCounts={topicCounts}
+      topicLimits={topicLimits}
+      isSavedQuizzesOpen={isSavedQuizzesOpen}
+      isSettingsOpen={isSettingsOpen}
+      savedQuizzes={savedQuizzes}
+      editingQuizId={editingQuizId}
+      editingName={editingName}
+      enableCustomQuestionCount={enableCustomQuestionCount}
+      hideCorrectAnswer={hideCorrectAnswer}
+      isExamplePopoverOpen={isExamplePopoverOpen}
+      questions={questions}
+      toggleDarkMode={toggleDarkMode}
+      setIsSavedQuizzesOpen={setIsSavedQuizzesOpen}
+      setIsSettingsOpen={setIsSettingsOpen}
+      setEnableCustomQuestionCount={setEnableCustomQuestionCount}
+      setHideCorrectAnswer={setHideCorrectAnswer}
+      setEditingQuizId={setEditingQuizId}
+      setEditingName={setEditingName}
+      setPendingQuestions={setPendingQuestions}
+      setIsExamplePopoverOpen={setIsExamplePopoverOpen}
+      handleFileUpload={handleFileUpload}
+      handleUploadAction={handleUploadAction}
+      handleTopicLimitChange={handleTopicLimitChange}
+      restartQuiz={restartQuiz}
+      startCustomQuiz={startCustomQuiz}
+      handleQuizRestart={handleQuizRestart}
+      handleSaveQuiz={handleSaveQuiz}
+      handleQuizFinish={handleQuizFinish}
+      renameSavedQuiz={renameSavedQuiz}
+      deleteSavedQuiz={deleteSavedQuiz}
+      loadSavedQuiz={loadSavedQuiz}
+      loadExampleQuiz={loadExampleQuiz}
+      downloadTemplate={downloadTemplate}
+      settingsButtonRef={settingsButtonRef}
+      settingsPopoverRef={settingsPopoverRef}
+      savedQuizzesButtonRef={savedQuizzesButtonRef}
+      savedQuizzesPopoverRef={savedQuizzesPopoverRef}
+      exampleButtonRef={exampleButtonRef}
+      examplePopoverRef={examplePopoverRef}
+    />
   );
 }
