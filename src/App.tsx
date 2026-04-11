@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import React, { useState, useEffect, useRef } from 'react';
 import Papa from 'papaparse';
-import { Upload, PlayCircle, Download, Moon, Sun, Settings, X, Library, Trash2, Edit2, Check } from 'lucide-react';
+import { Upload, PlayCircle, Download, Moon, Sun, Settings, X, Library, Trash2, Edit2, Check, Save } from 'lucide-react';
 import Quiz, { Question } from './components/Quiz';
 import { QUINTASERIE_CSV, ENEM_CSV, ENAMED_CSV, OAB_CSV } from './data/defaultCsv';
 
@@ -40,6 +40,7 @@ export default function App() {
   
   const [isConfiguringQuestions, setIsConfiguringQuestions] = useState(false);
   const [allParsedQuestions, setAllParsedQuestions] = useState<Question[]>([]);
+  const [pendingQuestions, setPendingQuestions] = useState<Question[] | null>(null);
   const [topicLimits, setTopicLimits] = useState<Record<string, number>>({});
   const [topicCounts, setTopicCounts] = useState<Record<string, number>>({});
 
@@ -164,26 +165,8 @@ export default function App() {
           if (limit && limit > 0) {
             finalParsedQuestions = parsedQuestions.slice(0, limit);
           }
-
-          // Agora calculamos os totais sempre, para não perder o pool de questões
-          const counts: Record<string, number> = {};
-          finalParsedQuestions.forEach(q => {
-            counts[q.topic] = (counts[q.topic] || 0) + 1;
-          });
-          
-          setTopicCounts(counts);
-          setTopicLimits(counts);
-          setAllParsedQuestions(finalParsedQuestions);
-
-          if (enableCustomQuestionCount) {
-            setIsConfiguringQuestions(true);
-            setError(null);
-          } else {
-            setQuestions(finalParsedQuestions);
-            setIsStarted(true);
-            setIsQuizFinished(false);
-            setError(null);
-          }
+          setPendingQuestions(finalParsedQuestions);
+          setError(null);
         } catch (err: any) {
           setError(err.message || 'Erro ao processar o arquivo CSV.');
         }
@@ -269,6 +252,37 @@ export default function App() {
     setSavedQuizzes(updated);
     localStorage.setItem('saved-quizzes', JSON.stringify(updated));
     alert('Quiz salvo com sucesso!');
+  };
+
+  const handleUploadAction = (action: 'save' | 'run' | 'both') => {
+    if (!pendingQuestions) return;
+
+    const questionsToUse = [...pendingQuestions];
+    
+    if (action === 'save' || action === 'both') {
+      handleSaveQuiz(questionsToUse);
+    }
+
+    if (action === 'run' || action === 'both') {
+      const counts: Record<string, number> = {};
+      questionsToUse.forEach(q => {
+        counts[q.topic] = (counts[q.topic] || 0) + 1;
+      });
+      
+      setTopicCounts(counts);
+      setTopicLimits(counts);
+      setAllParsedQuestions(questionsToUse);
+
+      if (enableCustomQuestionCount) {
+        setIsConfiguringQuestions(true);
+      } else {
+        setQuestions(questionsToUse);
+        setIsStarted(true);
+        setIsQuizFinished(false);
+      }
+    }
+
+    setPendingQuestions(null);
   };
 
   const handleQuizFinish = (finalScore: number) => {
@@ -574,6 +588,50 @@ export default function App() {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {pendingQuestions && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white">Arquivo Processado!</h3>
+                <button 
+                  onClick={() => setPendingQuestions(null)}
+                  className="p-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6">
+                <p className="text-slate-600 dark:text-slate-400 mb-6">
+                  O que você deseja fazer com as <strong>{pendingQuestions.length} questões</strong> encontradas?
+                </p>
+                <div className="grid gap-3">
+                  <button
+                    onClick={() => handleUploadAction('run')}
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition-colors"
+                  >
+                    <PlayCircle className="w-5 h-5" />
+                    Apenas Iniciar
+                  </button>
+                  <button
+                    onClick={() => handleUploadAction('both')}
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white font-medium rounded-xl hover:bg-emerald-700 transition-colors"
+                  >
+                    <Save className="w-5 h-5" />
+                    Salvar e Iniciar
+                  </button>
+                  <button
+                    onClick={() => handleUploadAction('save')}
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    <Library className="w-5 h-5" />
+                    Apenas Salvar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {error && (
           <div className="mb-8 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400 text-sm font-medium max-w-2xl mx-auto text-center">
             {error}
