@@ -13,7 +13,7 @@ interface QuizProps {
   questions: Question[];
   onExit: () => void;
   hideCorrectAnswer?: boolean;
-  onFinish?: () => void;
+  onFinish?: (score: number) => void;
   onRestart?: () => void;
   onSave?: (questions: Question[]) => void;
 }
@@ -113,9 +113,9 @@ export default function Quiz({ questions, onExit, hideCorrectAnswer = false, onF
       setShowFeedback(false);
     } else {
       setQuizFinished(true);
-      if (onFinish) onFinish();
+      if (onFinish) onFinish(score);
     }
-  }, [currentIndex, localQuestions.length, onFinish]);
+  }, [currentIndex, localQuestions.length, onFinish, score]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

@@ -9,6 +9,7 @@ interface SavedQuiz {
   name: string;
   date: string;
   questions: Question[];
+  highestScore?: number;
 }
 
 export default function App() {
@@ -34,6 +35,7 @@ export default function App() {
   const [hideCorrectAnswer, setHideCorrectAnswer] = useState(false);
   
   const [isQuizFinished, setIsQuizFinished] = useState(false);
+  const [activeSavedQuizId, setActiveSavedQuizId] = useState<string | null>(null);
   
   const [isConfiguringQuestions, setIsConfiguringQuestions] = useState(false);
   const [allParsedQuestions, setAllParsedQuestions] = useState<Question[]>([]);
@@ -96,6 +98,7 @@ export default function App() {
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
   const parseCSV = (csvText: string, limit?: number) => {
+    setActiveSavedQuizId(null);
     Papa.parse(csvText, {
       header: true,
       skipEmptyLines: true,
@@ -230,6 +233,7 @@ export default function App() {
     setIsQuizFinished(false);
     setQuestions([]);
     setAllParsedQuestions([]);
+    setActiveSavedQuizId(null);
     setError(null);
   };
 
@@ -266,12 +270,40 @@ export default function App() {
     alert('Quiz salvo com sucesso!');
   };
 
+  const handleQuizFinish = (finalScore: number) => {
+    setIsQuizFinished(true);
+    if (activeSavedQuizId) {
+      const updated = savedQuizzes.map(q => {
+        if (q.id === activeSavedQuizId) {
+          const currentPercentage = Math.round((finalScore / questions.length) * 100);
+          const oldPercentage = q.highestScore ?? -1;
+          return { ...q, highestScore: Math.max(oldPercentage, currentPercentage) };
+        }
+        return q;
+      });
+      setSavedQuizzes(updated);
+      localStorage.setItem('saved-quizzes', JSON.stringify(updated));
+    }
+  };
+
   const loadSavedQuiz = (quiz: SavedQuiz) => {
-    setQuestions(quiz.questions);
     setAllParsedQuestions(quiz.questions);
-    setIsStarted(true);
+    setActiveSavedQuizId(quiz.id);
+    
+    if (enableCustomQuestionCount) {
+      const counts: Record<string, number> = {};
+      quiz.questions.forEach(q => counts[q.topic] = (counts[q.topic] || 0) + 1);
+      setTopicCounts(counts);
+      setTopicLimits(counts);
+      setIsConfiguringQuestions(true);
+      setIsStarted(false);
+    } else {
+      setQuestions(quiz.questions);
+      setIsStarted(true);
+      setIsConfiguringQuestions(false);
+    }
+    
     setIsQuizFinished(false);
-    setIsConfiguringQuestions(false);
     setIsSavedQuizzesOpen(false);
     setError(null);
   };
@@ -494,7 +526,10 @@ export default function App() {
                           <>
                             <button onClick={() => loadSavedQuiz(quiz)} className="flex-1 text-left min-w-0">
                               <p className="font-medium text-slate-900 dark:text-white truncate">{quiz.name}</p>
-                              <p className="text-xs text-slate-500 dark:text-slate-400">{quiz.date} • {quiz.questions.length} questões</p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                {quiz.date} • {quiz.questions.length} questões
+                                {typeof quiz.highestScore === 'number' ? ` • Recorde: ${quiz.highestScore}%` : ''}
+                              </p>
                             </button>
                             <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
                               <button
@@ -708,7 +743,7 @@ export default function App() {
             onExit={restartQuiz} 
             hideCorrectAnswer={hideCorrectAnswer}
             onSave={handleSaveQuiz}
-            onFinish={() => setIsQuizFinished(true)} 
+            onFinish={(score) => handleQuizFinish(score)} 
             onRestart={() => {
               setIsQuizFinished(false);
               // Verifica se a opção de "Definir número de questões" foi ativada na tela de resultados
