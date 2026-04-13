@@ -55,7 +55,14 @@ export const translations = {
     languageLabel: "Idioma",
     finish: "Concluir",
     selectAtLeastOne: "Selecione pelo menos uma questão para iniciar o quiz.",
-    savedSuccess: "Quiz salvo com sucesso!"
+    savedSuccess: "Quiz salvo com sucesso!",
+    manageQuestions: "Gerenciar Questões",
+    quizDetails: "Detalhes do Quiz",
+    visible: "Visível",
+    hidden: "Oculta",
+    back: "Voltar",
+    showOptions: "Ver Alternativas",
+    hideOptions: "Ocultar Alternativas"
   },
   en: {
     title: "Quiz Generator",
@@ -111,6 +118,13 @@ export const translations = {
     languageLabel: "Language",
     finish: "Finish",
     selectAtLeastOne: "Select at least one question to start the quiz.",
-    savedSuccess: "Quiz saved successfully!"
+    savedSuccess: "Quiz saved successfully!",
+    manageQuestions: "Manage Questions",
+    quizDetails: "Quiz Details",
+    visible: "Visible",
+    hidden: "Hidden",
+    back: "Back",
+    showOptions: "Show Alternatives",
+    hideOptions: "Hide Alternatives"
   }
 };

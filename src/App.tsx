@@ -11,6 +11,7 @@ export interface SavedQuiz {
   date: string;
   questions: Question[];
   highestScore?: number;
+  hiddenIndices?: number[];
 }
 
 /**
@@ -45,6 +46,7 @@ export default function App() {
   /** Controls the visibility of the saved quizzes (library) popover. */
   const [isSavedQuizzesOpen, setIsSavedQuizzesOpen] = useState(false);
   const [editingQuizId, setEditingQuizId] = useState<string | null>(null);
+  const [detailingQuiz, setDetailingQuiz] = useState<SavedQuiz | null>(null);
   const [editingName, setEditingName] = useState('');
   const [enableCustomQuestionCount, setEnableCustomQuestionCount] = useState(false);
   const [hideCorrectAnswer, setHideCorrectAnswer] = useState(false);
@@ -278,6 +280,28 @@ export default function App() {
     }
   };
 
+  /**
+   * Toggles the visibility of a specific question within a saved quiz.
+   * Updates both the application state and persistent storage.
+   */
+  const handleToggleQuestionVisibility = (quizId: string, index: number) => {
+    const updated = savedQuizzes.map(q => {
+      if (q.id === quizId) {
+        const currentHidden = q.hiddenIndices || [];
+        const newHidden = currentHidden.includes(index)
+          ? currentHidden.filter(i => i !== index)
+          : [...currentHidden, index];
+        return { ...q, hiddenIndices: newHidden };
+      }
+      return q;
+    });
+    setSavedQuizzes(updated);
+    localStorage.setItem('saved-quizzes', JSON.stringify(updated));
+    if (detailingQuiz?.id === quizId) {
+      setDetailingQuiz(updated.find(q => q.id === quizId) || null);
+    }
+  };
+
   const handleQuizRestart = () => {
     setIsQuizFinished(false);
     if (enableCustomQuestionCount) {
@@ -359,8 +383,10 @@ export default function App() {
 
   const loadSavedQuiz = (quiz: SavedQuiz) => {
     setActiveSavedQuizId(quiz.id);
-    startQuizWithQuestions(quiz.questions);
+    const visibleQuestions = quiz.questions.filter((_, idx) => !quiz.hiddenIndices?.includes(idx));
+    startQuizWithQuestions(visibleQuestions);
     setIsSavedQuizzesOpen(false);
+    setDetailingQuiz(null);
     setError(null);
   };
 
@@ -443,6 +469,9 @@ export default function App() {
       savedQuizzes={savedQuizzes}
       editingQuizId={editingQuizId}
       editingName={editingName}
+      detailingQuiz={detailingQuiz}
+      setDetailingQuiz={setDetailingQuiz}
+      handleToggleQuestionVisibility={handleToggleQuestionVisibility}
       enableCustomQuestionCount={enableCustomQuestionCount}
       hideCorrectAnswer={hideCorrectAnswer}
       isExamplePopoverOpen={isExamplePopoverOpen}
