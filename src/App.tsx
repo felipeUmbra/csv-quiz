@@ -88,6 +88,12 @@ export default function App() {
   const exampleButtonRef = useRef<HTMLDivElement>(null);
   const examplePopoverRef = useRef<HTMLDivElement>(null);
 
+  /** 
+   * Timestamp of the last interaction with a popover or menu. 
+   * Used to prevent "tap-through" events on mobile devices.
+   */
+  const lastInteractionRef = useRef<number>(0);
+
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
@@ -95,6 +101,13 @@ export default function App() {
       document.documentElement.classList.remove('dark');
     }
   }, [isDarkMode]);
+
+  /**
+   * Records the current timestamp to the interaction lock.
+   */
+  const recordInteraction = () => {
+    lastInteractionRef.current = Date.now();
+  };
 
   // Effect to handle clicking outside the popover to close it
   useEffect(() => {
@@ -105,6 +118,7 @@ export default function App() {
         settingsButtonRef.current &&
         !settingsButtonRef.current.contains(event.target as Node)
       ) {
+        recordInteraction();
         setIsSettingsOpen(false);
       }
 
@@ -114,6 +128,7 @@ export default function App() {
         savedQuizzesButtonRef.current &&
         !savedQuizzesButtonRef.current.contains(event.target as Node)
       ) {
+        recordInteraction();
         setIsSavedQuizzesOpen(false);
       }
 
@@ -123,6 +138,7 @@ export default function App() {
         exampleButtonRef.current &&
         !exampleButtonRef.current.contains(event.target as Node)
       ) {
+        recordInteraction();
         setIsExamplePopoverOpen(false);
       }
     };
@@ -215,6 +231,13 @@ export default function App() {
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+
+    // Prevents "tap-through" from popover menus by enforcing a 500ms delay 
+    // between a menu interaction and a valid file upload trigger.
+    if (Date.now() - lastInteractionRef.current < 500) {
+      event.target.value = '';
+      return;
+    }
     
     if (!file) {
       return;
@@ -255,11 +278,13 @@ export default function App() {
     setIsQuizFinished(false);
     setQuestions([]);
     setAllParsedQuestions([]);
+    recordInteraction();
     setActiveSavedQuizId(null);
     setError(null);
   };
 
   const startQuizWithQuestions = (questionsToUse: Question[]) => {
+    recordInteraction();
     const counts: Record<string, number> = {};
     questionsToUse.forEach(q => {
       counts[q.topic] = (counts[q.topic] || 0) + 1;
@@ -382,6 +407,7 @@ export default function App() {
   };
 
   const loadSavedQuiz = (quiz: SavedQuiz) => {
+    recordInteraction();
     setActiveSavedQuizId(quiz.id);
     const visibleQuestions = quiz.questions.filter((_, idx) => !quiz.hiddenIndices?.includes(idx));
     startQuizWithQuestions(visibleQuestions);
@@ -478,6 +504,7 @@ export default function App() {
       questions={questions}
       language={language}
       t={t}
+      recordInteraction={recordInteraction}
       setLanguage={setLanguage}
       toggleDarkMode={toggleDarkMode}
       setIsSavedQuizzesOpen={setIsSavedQuizzesOpen}
