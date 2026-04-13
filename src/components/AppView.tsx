@@ -31,6 +31,7 @@ interface AppViewProps {
   language: Language;
   t: typeof translations.pt;
   setLanguage: (lang: Language) => void;
+  recordInteraction: () => void;
   
   // Actions
   toggleDarkMode: () => void;
@@ -133,7 +134,10 @@ export const AppView: React.FC<AppViewProps> = (props) => {
               {props.isSettingsOpen && (
                 <div 
                   ref={props.settingsPopoverRef} 
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); props.recordInteraction(); }}
+                  onMouseDown={(e) => { e.stopPropagation(); props.recordInteraction(); }}
+                  onPointerDown={(e) => { e.stopPropagation(); props.recordInteraction(); }}
+                  onTouchStart={(e) => { e.stopPropagation(); props.recordInteraction(); }}
                   className="fixed sm:absolute top-20 sm:top-full right-4 sm:right-0 mt-0 sm:mt-2 w-[calc(100vw-2rem)] sm:w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 z-50 animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right"
                 >
                   <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
@@ -183,7 +187,10 @@ export const AppView: React.FC<AppViewProps> = (props) => {
               {props.isSavedQuizzesOpen && (
                 <div 
                   ref={props.savedQuizzesPopoverRef} 
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); props.recordInteraction(); }}
+                  onMouseDown={(e) => { e.stopPropagation(); props.recordInteraction(); }}
+                  onPointerDown={(e) => { e.stopPropagation(); props.recordInteraction(); }}
+                  onTouchStart={(e) => { e.stopPropagation(); props.recordInteraction(); }}
                   className="fixed sm:absolute top-20 sm:top-full right-4 sm:right-0 mt-0 sm:mt-2 w-[calc(100vw-2rem)] sm:w-80 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right"
                 >
                   <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
@@ -360,7 +367,17 @@ export const AppView: React.FC<AppViewProps> = (props) => {
             <p className="text-lg text-slate-600 dark:text-slate-400 mb-12">{props.t.mainDesc}</p>
             <div className="grid sm:grid-cols-2 gap-6">
               <div className="relative group rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-8 hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all cursor-pointer flex flex-col items-center justify-center min-h-[240px]">
-                <input type="file" accept=".csv" onChange={props.handleFileUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                <input 
+                  type="file" 
+                  accept=".csv" 
+                  onChange={props.handleFileUpload} 
+                  disabled={props.isSettingsOpen || props.isSavedQuizzesOpen || props.isExamplePopoverOpen}
+                  className={`absolute inset-0 w-full h-full opacity-0 z-10 ${
+                    (props.isSettingsOpen || props.isSavedQuizzesOpen || props.isExamplePopoverOpen) 
+                      ? 'pointer-events-none cursor-default' 
+                      : 'cursor-pointer'
+                  }`} 
+                />
                 <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"><Upload className="w-8 h-8" /></div>
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">{props.t.uploadCsv}</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 text-center">{props.t.uploadDesc}</p>
@@ -372,7 +389,13 @@ export const AppView: React.FC<AppViewProps> = (props) => {
                   <p className="text-sm text-slate-500 dark:text-slate-400 text-center">{props.t.exampleDesc}</p>
                 </div>
                 {props.isExamplePopoverOpen && (
-                  <div ref={props.examplePopoverRef} className="absolute top-full left-0 right-0 mt-4 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div 
+                    ref={props.examplePopoverRef} 
+                    onClick={(e) => { e.stopPropagation(); props.recordInteraction(); }}
+                    onMouseDown={(e) => { e.stopPropagation(); props.recordInteraction(); }}
+                    onPointerDown={(e) => { e.stopPropagation(); props.recordInteraction(); }}
+                    onTouchStart={(e) => { e.stopPropagation(); props.recordInteraction(); }}
+                    className="absolute top-full left-0 right-0 mt-4 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="p-2 space-y-1">
                       <button onClick={() => props.loadExampleQuiz(OAB_CSV)} className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors flex items-center gap-3"><div className="w-2 h-2 rounded-full bg-blue-500"></div><span className="font-medium">Teste da OAB</span></button>
                       <button onClick={() => props.loadExampleQuiz(QUINTASERIE_CSV)} className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors flex items-center gap-3"><div className="w-2 h-2 rounded-full bg-emerald-500"></div><span className="font-medium">Teste da Quinta Série</span></button>
