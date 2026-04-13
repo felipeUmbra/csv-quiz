@@ -64,6 +64,12 @@ interface AppViewProps {
   examplePopoverRef: React.RefObject<HTMLDivElement | null>;
 }
 
+/**
+ * Presentational Component for the application.
+ * Handles all JSX rendering, including the main header, popover menus (Settings, Library, Examples),
+ * the initial landing/upload screen, and the configuration dashboard.
+ * Uses fixed/absolute positioning logic for mobile-friendly popovers.
+ */
 export const AppView: React.FC<AppViewProps> = (props) => {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans selection:bg-indigo-100 dark:selection:bg-indigo-900 selection:text-indigo-900 dark:selection:text-indigo-100 transition-colors duration-200">
@@ -71,7 +77,14 @@ export const AppView: React.FC<AppViewProps> = (props) => {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <img src={`${import.meta.env.BASE_URL}favicon.ico`} alt="Logo" className="w-5 h-5" />
+              <img 
+                src={`${import.meta.env.BASE_URL}favicon.ico`} 
+                alt="Logo" 
+                className="w-5 h-5" 
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = "https://raw.githubusercontent.com/felipeUmbra/csv-quiz/bec672358716a756171a71838b9e76b87b03a90e/favicon.svg";
+                }}
+              />
             </div>
             <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">{props.t.title}</h1>
           </div>
@@ -106,7 +119,11 @@ export const AppView: React.FC<AppViewProps> = (props) => {
               )}
 
               {props.isSettingsOpen && (
-                <div ref={props.settingsPopoverRef} className="fixed sm:absolute top-20 sm:top-full right-4 sm:right-0 mt-0 sm:mt-2 w-[calc(100vw-2rem)] sm:w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 z-50 animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right">
+                <div 
+                  ref={props.settingsPopoverRef} 
+                  onClick={(e) => e.stopPropagation()}
+                  className="fixed sm:absolute top-20 sm:top-full right-4 sm:right-0 mt-0 sm:mt-2 w-[calc(100vw-2rem)] sm:w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 z-50 animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right"
+                >
                   <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                       <Settings className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
@@ -152,7 +169,11 @@ export const AppView: React.FC<AppViewProps> = (props) => {
               )}
 
               {props.isSavedQuizzesOpen && (
-                <div ref={props.savedQuizzesPopoverRef} className="fixed sm:absolute top-20 sm:top-full right-4 sm:right-0 mt-0 sm:mt-2 w-[calc(100vw-2rem)] sm:w-80 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right">
+                <div 
+                  ref={props.savedQuizzesPopoverRef} 
+                  onClick={(e) => e.stopPropagation()}
+                  className="fixed sm:absolute top-20 sm:top-full right-4 sm:right-0 mt-0 sm:mt-2 w-[calc(100vw-2rem)] sm:w-80 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right"
+                >
                   <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2"><Library className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />{props.t.myQuizzes}</h2>
                     <button onClick={() => props.setIsSavedQuizzesOpen(false)} className="p-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><X className="w-4 h-4" /></button>
@@ -174,7 +195,7 @@ export const AppView: React.FC<AppViewProps> = (props) => {
                                 <p className="font-medium text-slate-900 dark:text-white truncate">{quiz.name}</p>
                                 <p className="text-xs text-slate-500 dark:text-slate-400">{quiz.date} • {quiz.questions.length} {props.t.questionsLabel} {typeof quiz.highestScore === 'number' ? ` • ${props.t.record}: ${quiz.highestScore}%` : ''}</p>
                               </button>
-                              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                              <div className="flex items-center gap-0.5 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity ml-2">
                                 <button onClick={() => { props.setEditingQuizId(quiz.id); props.setEditingName(quiz.name); }} className="p-2 text-slate-400 hover:text-indigo-500 rounded-lg" title={props.t.rename}><Edit2 className="w-4 h-4" /></button>
                                 <button onClick={() => props.deleteSavedQuiz(quiz.id)} className="p-2 text-slate-400 hover:text-red-500 rounded-lg" title={props.t.delete}><Trash2 className="w-4 h-4" /></button>
                               </div>

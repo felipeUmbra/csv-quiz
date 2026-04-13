@@ -20,8 +20,13 @@ interface QuizProps {
   t: typeof translations.pt;
 }
 
-// CORREÇÃO: Adicionados onFinish e onRestart aqui na declaração do componente
+/**
+ * The Core Quiz Engine.
+ * Manages the interactive session, including the question timer, option selection feedback,
+ * keyboard navigation (A-H, Enter), and the final results summary with topic performance breakdown.
+ */
 export default function Quiz({ questions, onExit, hideCorrectAnswer = false, onFinish, onRestart, onSave, t }: QuizProps) {
+  // --- Shuffling Logic ---
 
   const shuffleQuestionsAndOptions = (qs: Question[]) => {
     return qs.map(q => {

@@ -13,10 +13,21 @@ export interface SavedQuiz {
   highestScore?: number;
 }
 
+/**
+ * The main Container Component for the CSV Quiz application.
+ * It manages the core business logic, including state persistence (localStorage),
+ * CSV parsing orchestration, theme switching, and language localization.
+ */
 export default function App() {
+  // --- Core Quiz Session State ---
+  /** The subset of questions currently loaded into the active quiz session. */
   const [questions, setQuestions] = useState<Question[]>([]);
+  /** Boolean flag indicating if a quiz is currently being taken. */
   const [isStarted, setIsStarted] = useState(false);
+  /** Global error message state used to display feedback during file processing or validation. */
   const [error, setError] = useState<string | null>(null);
+  
+  /** Theme state: managed via the 'dark' class on the document element for Tailwind CSS. */
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return document.documentElement.classList.contains('dark');
@@ -24,11 +35,14 @@ export default function App() {
     return true;
   });
 
+  // --- UI & Library State ---
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  /** Collection of quizzes stored in localStorage, updated when users save new uploads. */
   const [savedQuizzes, setSavedQuizzes] = useState<SavedQuiz[]>(() => {
     const stored = localStorage.getItem('saved-quizzes');
     return stored ? JSON.parse(stored) : [];
   });
+  /** Controls the visibility of the saved quizzes (library) popover. */
   const [isSavedQuizzesOpen, setIsSavedQuizzesOpen] = useState(false);
   const [editingQuizId, setEditingQuizId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
@@ -47,11 +61,18 @@ export default function App() {
   const t = translations[language];
 
   const [isQuizFinished, setIsQuizFinished] = useState(false);
+  /** Tracks which saved quiz is currently being played to update the 'highestScore'. */
   const [activeSavedQuizId, setActiveSavedQuizId] = useState<string | null>(null);
   
+  // --- CSV Processing State ---
+  /** Boolean flag for the intermediate step where users choose question counts per topic. */
   const [isConfiguringQuestions, setIsConfiguringQuestions] = useState(false);
+  /** The full pool of questions parsed from the current CSV, before any topic filtering. */
   const [allParsedQuestions, setAllParsedQuestions] = useState<Question[]>([]);
+  /** Questions waiting for user action (save/run) after a successful upload. */
   const [pendingQuestions, setPendingQuestions] = useState<Question[] | null>(null);
+  
+  // --- Topic Mapping State ---
   const [topicLimits, setTopicLimits] = useState<Record<string, number>>({});
   const [topicCounts, setTopicCounts] = useState<Record<string, number>>({});
 
@@ -110,6 +131,13 @@ export default function App() {
 
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
+  /**
+   * Parses raw CSV text into a structured Question array.
+   * Handles data validation, option shuffling, and error mapping for common CSV issues.
+   * 
+   * @param csvText - The raw string content of the CSV file.
+   * @param onComplete - Callback executed with the parsed questions upon success.
+   */
   const parseCSV = (csvText: string, onComplete: (qs: Question[]) => void) => {
     setActiveSavedQuizId(null);
     Papa.parse(csvText, {
@@ -371,6 +399,11 @@ export default function App() {
     setTopicLimits(prev => ({ ...prev, [topic]: newValue }));
   };
 
+  /**
+   * Finalizes the custom quiz configuration.
+   * Filters 'allParsedQuestions' based on user-defined limits per topic,
+   * shuffles the final selection, and transitions to the Quiz view.
+   */
   const startCustomQuiz = () => {
     let finalQuestions: Question[] = [];
     
